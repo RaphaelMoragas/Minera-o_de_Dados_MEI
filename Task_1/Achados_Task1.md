@@ -336,6 +336,6 @@ De forma geral, o volume de sessões, a taxa de anomalia mensal e a base de usu�
 
 ### Decisões para a Task 2
 
-- **Início frio:** as sessões de dez/2019 e jan/2020 vão ser retiradas do treino. Nesses meses o histórico dos usuários e dos postos ainda está sendo construído (94% e 31% de usuários novos, contra 10–15% nos outros meses), então as variáveis de histórico têm pouca informação. São cerca de 6 200 sessões (~1,4% do total).
-- **Fevereiro:** a queda de sessões em fev/2020 não é removida. A mesma queda acontece em fev/2021, então parece ser um evento que se repete todo ano, muito mais provavelmente ligado ao Ano Novo Chinês do que à COVID como antes pensado. Além disso, a taxa de anomalia desse mês (26,3%) é parecida com a de janeiro (25,0%) e março (24,8%).
+- **Início frio:** as sessões de dez/2019 e jan/2020 vão ser retiradas do treino. Nesses meses o histórico dos usuários e dos postos ainda está sendo construído (94% e 31% de usuários novos, contra 10–15% nos outros meses), então as variáveis de histórico têm pouca informação. São cerca de 6 200 sessões (~1,4% do total) das mais de 400mil que temos no total.
+- **Fevereiro:** a queda de sessões em fev/2020 não será removida. A mesma queda acontece em fev/2021, então parece ser um evento que se repete todo ano, muito mais provavelmente ligado ao Ano Novo Chinês do que à COVID como antes idealizado. Além disso, a taxa de anomalia desse mês (26,3%) é parecida com a de janeiro (25,0%) e março (24,8%).
 - O corte é feito só no treino, na Task 2. O CSV exportado no notebook manterá todas as sessões não modificadas.
