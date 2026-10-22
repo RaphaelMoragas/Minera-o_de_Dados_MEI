@@ -93,5 +93,68 @@ As validações acabam por não ter o mesmo tamanho devido ao fato do volume de 
 
 Tudo o que o modelo aprende dos dados (scaler, one-hot, limite de outliers, etc) é ajustado só no treino de cada fold e depois apenas aplicado na validação, que fica sempre com a distribuição original. O log1p não aprende nada dos dados, por isso pode ser aplicado em tudo.
 
-O teste foi separado logo no início e não entra em nenhuma decisão. Modelos, parametros e threshold são escolhidos só com os 3 folds. No fim, o modelo final é treinado nos 11 meses antes do teste e avaliado uma única vez, sem voltar atrás caso o resultado não seja bom.
+O teste foi separado logo no início e não entra em nenhuma decisão. Modelos, parametros e threshold são escolhidos só com os 3 folds. No fim, o modelo final é treinado nos 11 meses antes do teste e avaliado uma única vez, sem voltar atrás caso o resultado não seja bom, senão o teste acabaria por virar mais uma validação e o resultado deixaria de ser imparcial.
+
+---
+
+## 6. Agregação entre folds
+
+Cada modelo vai ter um resultado por fold, e precisamos decidir como juntar esses 3 valores num resumo. Para ver na prática a diferença entre as formas de agregar, aplicamos todas ao baseline de regra (secção 7):
+
+| Forma de agregar | AUC-PR da regra |
+|---|---|
+| Média simples | 0,533 |
+| Desvio-padrão | 0,079 |
+| Média ponderada pelo tamanho da validação | 0,547 |
+| Pooled (as 3 validações juntas) | 0,554 |
+
+A média ponderada e a pooled acabam por puxar o resultado para cima porque o fold 3 é o maior (75 769 sessões) e também é o que tem o valor mais alto, ou seja, nessas duas formas o período mais recente pesa mais do que os outros. Já na média simples cada período conta o mesmo.
+
+Logo, para comparar os modelos vamos usar a média simples da AUC-PR, já que queremos que o modelo funcione bem em todos os períodos e não só no maior. Junto com ela vamos sempre mostrar o desvio-padrão, o pior fold e o valor de cada fold, porque um desvio de 0,079 como o da regra é grande (cerca de 15% da média) e mostra que a média sozinha esconde muita variação. Também vamos contar em quantos dos 3 folds o modelo passa da regra, visto que um modelo que ganha na média mas perde em algum fold não é confiável. Já a forma pooled vai ser usada para escolher o threshold e para as métricas operacionais por 1 000 sessões, já que aí faz sentido juntar todas as sessões de validação.
+
+Quanto à evolução no tempo, a AUC-PR da regra sobe de 0,443 para 0,592, mas a taxa de anomalia também sobe (de 15,8% para 21,1%). Dividindo uma pela outra a regra fica praticamente estável, sempre perto de 3 vezes o no-skill (2,8, 3,1 e 2,8), ou seja, a melhora vem mais da taxa de anomalia de cada período do que da regra em si, e por isso a evolução no tempo tem que ser lida sempre em relação ao baseline de cada fold.
+
+---
+
+## 7. Baseline
+
+Para sabermos se um modelo é bom precisamos de uma régua para comparação, e por isso definimos dois baselines, ambos medidos com a AUC-PR, que é a nossa métrica principal.
+
+| Fold | Taxa de anomalia | No-skill (AUC-PR) | Regra (AUC-PR) |
+|---|---|---|---|
+| 1 | 15,8% | 0,158 | 0,443 |
+| 2 | 18,2% | 0,182 | 0,564 |
+| 3 | 21,1% | 0,211 | 0,592 |
+
+O primeiro é o no-skill, ou seja, o mesmo modelo que prevê sempre normal que usamos no teste da acurácia. Como ele não ordena as sessões de nenhuma forma, a sua AUC-PR acaba por ser exatamente a taxa de anomalia de cada fold, como já tínhamos comentado nas métricas. Qualquer modelo que não passe desses valores não aprendeu nada.
+
+O segundo é uma regra simples, onde usamos diretamente a taxa de falhas do posto no dia anterior (post_previous_abnormal_rate_1D), que foi a variável mais correlacionada com o alvo na Task 1 (0,45), como pontuação de risco. Ou seja, quanto mais o posto falhou ontem, maior o risco da sessão de hoje ser anormal. Ela não precisa de treino nem de threshold e mesmo assim já é praticamente 3 vezes melhor que o no-skill em todos os folds.
+
+Logo, a régua que realmente importa é a regra e não o no-skill. Se o modelo final não passar claramente da regra, significa que as outras variáveis (clima, localização, histórico do usuário, etc.) não estão a acrescentar nada ao que o histórico do posto já diz sozinho. A comparação tem sempre que ser feita fold a fold, visto que tanto a taxa de anomalia quanto o resultado da regra mudam de um período para outro.
+
+---
+
+## 8. Protocolo de avaliação
+
+A fim de fecharmos a Task 2, juntamos aqui tudo o que foi decidido. Este protocolo fica definido antes de qualquer modelo ser treinado, ou seja, não vamos mudar estas regras depois de ver os resultados que teremos na Task 3.
+
+| Item | Decisão |
+|---|---|
+| Problema | prever, no início de cada sessão (Start Time), se ela vai ser anormal (is_Abnormal = 1) ou normal (0) |
+| Uso | monitoramento automático e priorização da manutenção dos postos |
+| Preditores admitidos | as 28 colunas do CSV tratado (local, clima, tariff_period, histórico do posto e do usuário, user_active_sessions_at_start) e o Start Time, de onde vamos tirar a hora e o dia da semana |
+| Excluídos | End cause (só serve para o alvo), as 7 colunas geradas durante ou depois da sessão, Order creation time e electricity_price (redundantes) e as 6 variáveis com correlação acima de 0,9 |
+| A avaliar na modelação | UserID e Charging Post ID, comparando o modelo com e sem eles |
+| Divisão temporal | rolling-origin com treino de 11 meses e 3 folds com validações trimestrais (jan–mar, abr–jun e jul–set/2021); teste final em out–dez/2021, usado uma única vez |
+| Pré-processamento | scaler, one-hot, limite de outliers, etc., ajustados só no treino de cada fold |
+| Erro mais grave | o FN (anomalia não detetada), sem ignorar o FP (alertas falsos demais) |
+| Métrica principal | AUC-PR |
+| Métricas complementares | recall, precision, F1, balanced accuracy, MCC e ROC-AUC (a acurácia não é usada) |
+| Threshold | o de maior precision entre os que garantem um recall mínimo, escolhido com as 3 validações juntas |
+| Métricas operacionais | alertas corretos, alertas falsos e anomalias perdidas a cada 1 000 sessões |
+| Baselines | no-skill (sempre normal, AUC-PR = taxa de anomalia do fold) e regra com a post_previous_abnormal_rate_1D (AUC-PR de 0,443, 0,564 e 0,592) |
+| Agregação | média simples da AUC-PR para comparar modelos, sempre com o desvio-padrão, o pior fold e quantos folds o modelo ganha da regra; pooled para o threshold e as métricas operacionais |
+| Comparação estatística | nos folds pela média, desvio e folds ganhos (o Wilcoxon não serve com 3 folds); no teste final com o McNemar |
+
+Lembrando que um modelo só vai ser considerado bom se passar claramente da regra em todos os folds, e não só na média.
 
