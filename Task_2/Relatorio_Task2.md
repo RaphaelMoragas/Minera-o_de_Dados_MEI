@@ -49,11 +49,11 @@ Também consideramos a intervenção no usuário (avisar para trocar de posto), 
 
 ## 4. Métricas de avaliação
 
-Um modelo que prevê sempre normal tem entre 78,9% e 84,2% de acurácia nas validações, mas recall de 0%. É o accuracy paradox, ou seja, com  aproximadamente 18% de anomalias a acurácia mede mais o desbalanceamento do período do que a qualidade do modelo, e por isso não vai ser usada, mesmo que a tenhamos testado durante o notebook numa fase inicial.
+Um modelo que prevê sempre normal acertaria cerca de 81% das sessões, mas teria recall de 0%. É o accuracy paradox, ou seja, com  aproximadamente 18% de anomalias a acurácia mede mais o desbalanceamento do período do que a qualidade do modelo, e por isso não vai ser usada.
 
 A métrica principal seria a AUC-PR. Pois ela é indicada quando a classe positiva é minoritária e quando os falsos positivos e falsos negativos acabam por ter custos diferentes, que são os nossos dois casos em questão. Como não depende do threshold, serve para comparar modelos e escolher hiperparâmetros antes do threshold acabar por ser definido. A limitação fianel é que o valor de um modelo sem skill é igual à taxa de anomalia, que muda de fold para fold, então cada fold acaba por ter que ser comparado com o seu próprio baseline.
 
-Obs: Há uma limitação visto que num modelo sem skill, a AUC-PR é igual à taxa de anomalia, que nos nossos folds é 0,158, 0,182 e 0,211 consequentemente. Por isso o mesmo valor de AUC-PR não quer dizer o mesmo em todos os folds. Cada fold deve ser lido em relação ao seu próprio baseline.
+Obs: Há uma limitação visto que num modelo sem skill, a AUC-PR é igual à taxa de anomalia, que muda de fold para fold. Por isso o mesmo valor de AUC-PR não quer dizer o mesmo em todos os folds. Cada fold deve ser lido em relação ao seu próprio baseline.
 
 **Métricas complementares:**
 
@@ -68,51 +68,46 @@ Obs: Há uma limitação visto que num modelo sem skill, a AUC-PR é igual à ta
 
 Para o threshold, fica o de maior precision entre os que garantem um recall mínimo (por exemplo, 70%), escolhido com as 3 validações juntas e nunca com o teste. Como métricas operacionais usamos os alertas corretos, alertas falsos e anomalias perdidas a cada 1 000 sessões.
 
-Para a estabilidade entre folds usamos o desvio-padrão da AUC-PR e o pior fold. nas aulas vimos o teste de Wilcoxon para comparar modelos nos folds, mas com só 3 folds ele nunca consegue dar p < 0,05 (o menor p possível acaba sendo 0,25), então nos folds a comparação vai ser feita pela média, pelo desvio e por quantos folds cada modelo ganha. No teste final, como são cerca de 80 mil sessões, aí sim daria para utilizar o teste de McNemar.
+Para a estabilidade entre folds usamos o desvio-padrão da AUC-PR e o pior fold. nas aulas vimos o teste de Wilcoxon para comparar modelos nos folds, mas com só 3 folds ele nunca consegue dar p < 0,05 (o menor p possível acaba sendo 0,25), então nos folds a comparação vai ser feita pela média, pelo desvio e por quantos folds cada modelo ganha. No teste final, como são cerca de 88 mil sessões, aí sim daria para utilizar o teste de McNemar.
 
 ---
 
 ## 5. Estratégia de validação temporal
 
-Não usamos k-fold aleatório, porque ele misturaria sessões do futuro no treino. Usamos folds temporais com rolling-origin, como indicado no enunciado do projeto, onde o treino tem sempre 11 meses e desliza para a frente junto com a validação.
+Não usamos k-fold aleatório, porque ele misturaria sessões do futuro no treino. Primeiro, com os dados ordenados por data, separamos os 80% mais antigos para treino e os 20% mais recentes para teste. Depois, os folds são feitos só dentro dos 80% de treino, com rolling-origin, como indicado no enunciado do projeto, onde o treino tem sempre o mesmo tamanho e desliza para a frente junto com a validação.
+
+Para isso criamos uma função (dividir_dados) que faz o corte 80/20 e depois usa o TimeSeriesSplit para dividir o treino em folds. Assim nenhuma data é escolhida à mão e a mesma função pode ser usada em qualquer outro dataset.
 
 | Conjunto | Treino | Validação | Sessões na validação | Anomalias |
 |---|---|---|---|---|
-| Fold 1 | fev–dez/2020 | jan–mar/2021 | 41 797 | 6 611 |
-| Fold 2 | mai/2020–mar/2021 | abr–jun/2021 | 57 542 | 10 487 |
-| Fold 3 | ago/2020–jun/2021 | jul–set/2021 | 75 769 | 16 016 |
-| Teste final | nov/2020–set/2021 | out–dez/2021 | 80 081 | — |
+| Fold 1 | 01/04/2020–13/01/2021 | 13/01–03/05/2021 | 52 929 | 8 358 |
+| Fold 2 | 14/07/2020–03/05/2021 | 03/05–18/07/2021 | 52 929 | 10 416 |
+| Fold 3 | 22/09/2020–18/07/2021 | 18/07–22/09/2021 | 52 929 | 11 134 |
+| Teste final | as 180 000 sessões antes do teste | 22/09–31/12/2021 | 88 216 | — |
 
-O treino começa em fev/2020 porque dez/2019 e jan/2020 são os dois meses identificados como "outliers" na Task 1 (94% e 31% de usuários novos, respectivamente). O teste acaba por ficar com os últimos 3 meses e sobram de jan/2021 até set/2021 para as validações.
+O teste fica com exatamente 20% das sessões (88 216 de 441 077) e começa em 22/09/2021. As validações ocupam os últimos 45% do treino, divididos em 3 folds com o mesmo número de sessões. Escolhemos 3 folds porque assim cada validação fica com mais de 8 mil anomalias. Com mais folds cada validação ficaria menor, e aumentar a parte do treino usada nas validações faria o primeiro treino começar mais cedo, justamente no período em que o histórico ainda está se formando.
 
-Verificamos testar validações de 2, 3 e 4 meses. Com 2 meses a primeira validação acabaria por ficar só com 3 763 anomalias, o que parce ser pouco. Com 4 meses a primeira validação teria que começar em out/2020 e o treino do fold 1 ficaria só com fev/2020 até set/2020, justamente o período em que o histórico ainda está se formando. Logo, acabamos por escolher ficar com 3 meses (3 folds), que cobre exatamente os 9 meses disponíveis e tem o mesmo tamanho do teste.
+Cada treino tem 180 000 sessões, que é mais ou menos o tamanho do primeiro treino. Com isso o treino do fold 1 começa em abr/2020 e os meses de dez/2019 e jan/2020, identificados como "outliers" na Task 1 (94% e 31% de usuários novos, respectivamente), ficam de fora de todos os folds.
 
-Como vimos na secção 5 da Task 1, a taxa de anomalia muda bastante ao longo do tempo (podendo variar de 25% para 13,7% e de volta para 23%). Com o rolling o modelo aprende só com o passado recente, os meses do início (aqueles que indicamos como "outliers") saem dos folds 2 e 3 e os treinos ficam com tamanhos parecidos (179654, 202532 e 205496 sessões). A janela de 11 meses garante praticamente um ciclo inteiro de estações. A desvantagem é deixar de usar os meses mais antigos.
+Como vimos na secção 5 da Task 1, a taxa de anomalia muda bastante ao longo do tempo (podendo variar de 25% para 13,7% e de volta para 23%). Com o rolling o modelo aprende só com o passado recente e os treinos ficam todos com o mesmo tamanho. As 180 000 sessões correspondem a cerca de 9 a 10 meses, ou seja, quase um ciclo inteiro de estações. A desvantagem é deixar de usar os meses mais antigos.
 
-As validações acabam por não ter o mesmo tamanho devido ao fato do volume de sessões crescer ao longo de 2021, e isso é levado em conta na agregação (secção 6). As validações não se sobrepõem entre si, então cada sessão de jan/2021 até set/2021 e é avaliada uma única vez apenas.
+Como os folds são feitos pelo número de sessões, todas as validações têm o mesmo tamanho, mas não a mesma duração (cerca de 3,6, 2,5 e 2,2 meses), porque o volume de sessões cresce ao longo de 2021. As validações não se sobrepõem entre si, então cada sessão de 13/01/2021 até 22/09/2021 é avaliada uma única vez apenas.
 
 Tudo o que o modelo aprende dos dados (scaler, one-hot, limite de outliers, etc) é ajustado só no treino de cada fold e depois apenas aplicado na validação, que fica sempre com a distribuição original. O log1p não aprende nada dos dados, por isso pode ser aplicado em tudo.
 
-O teste foi separado logo no início e não entra em nenhuma decisão. Modelos, parametros e threshold são escolhidos só com os 3 folds. No fim, o modelo final é treinado nos 11 meses antes do teste e avaliado uma única vez, sem voltar atrás caso o resultado não seja bom, senão o teste acabaria por virar mais uma validação e o resultado deixaria de ser imparcial.
+O teste foi separado logo no início e não entra em nenhuma decisão. Modelos, parametros e threshold são escolhidos só com os 3 folds. No fim, o modelo final é treinado nas 180 000 sessões antes do teste e avaliado uma única vez, sem voltar atrás caso o resultado não seja bom, senão o teste acabaria por virar mais uma validação e o resultado deixaria de ser imparcial.
 
 ---
 
 ## 6. Agregação entre folds
 
-Cada modelo vai ter um resultado por fold, e precisamos decidir como juntar esses 3 valores num resumo. Para ver na prática a diferença entre as formas de agregar, aplicamos todas ao baseline de regra (secção 7):
+Cada modelo vai ter um resultado por fold, e precisamos decidir como juntar esses 3 valores num resumo. As formas possíveis são a média simples, a média ponderada pelo tamanho da validação e a pooled, onde juntamos as 3 validações numa só e calculamos a métrica uma única vez.
 
-| Forma de agregar | AUC-PR da regra |
-|---|---|
-| Média simples | 0,533 |
-| Desvio-padrão | 0,079 |
-| Média ponderada pelo tamanho da validação | 0,547 |
-| Pooled (as 3 validações juntas) | 0,554 |
+Como as 3 validações têm o mesmo número de sessões, a média ponderada acaba por dar exatamente o mesmo valor que a média simples. Já na pooled os folds 2 e 3, que têm mais anomalias, acabam por pesar mais do que o fold 1. Na média simples cada período conta o mesmo.
 
-A média ponderada e a pooled acabam por puxar o resultado para cima porque o fold 3 é o maior (75 769 sessões) e também é o que tem o valor mais alto, ou seja, nessas duas formas o período mais recente pesa mais do que os outros. Já na média simples cada período conta o mesmo.
+Logo, para comparar os modelos vamos usar a média simples da AUC-PR, já que queremos que o modelo funcione bem em todos os períodos e não só no maior. Junto com ela vamos sempre mostrar o desvio-padrão, o pior fold e o valor de cada fold, porque a média sozinha pode esconder muita variação entre os períodos. Também vamos contar em quantos dos 3 folds o modelo passa da regra, visto que um modelo que ganha na média mas perde em algum fold não é confiável. Já a forma pooled vai ser usada para escolher o threshold e para as métricas operacionais por 1 000 sessões, já que aí faz sentido juntar todas as sessões de validação.
 
-Logo, para comparar os modelos vamos usar a média simples da AUC-PR, já que queremos que o modelo funcione bem em todos os períodos e não só no maior. Junto com ela vamos sempre mostrar o desvio-padrão, o pior fold e o valor de cada fold, porque um desvio de 0,079 como o da regra é grande (cerca de 15% da média) e mostra que a média sozinha esconde muita variação. Também vamos contar em quantos dos 3 folds o modelo passa da regra, visto que um modelo que ganha na média mas perde em algum fold não é confiável. Já a forma pooled vai ser usada para escolher o threshold e para as métricas operacionais por 1 000 sessões, já que aí faz sentido juntar todas as sessões de validação.
-
-Quanto à evolução no tempo, a AUC-PR da regra sobe de 0,443 para 0,592, mas a taxa de anomalia também sobe (de 15,8% para 21,1%). Dividindo uma pela outra a regra fica praticamente estável, sempre perto de 3 vezes o no-skill (2,8, 3,1 e 2,8), ou seja, a melhora vem mais da taxa de anomalia de cada período do que da regra em si, e por isso a evolução no tempo tem que ser lida sempre em relação ao baseline de cada fold.
+Quanto à evolução no tempo, a taxa de anomalia sobe de 15,8% no fold 1 para 19,7% e 21,0% nos folds 2 e 3. Como a AUC-PR de um modelo sem skill acompanha essa taxa, um modelo pode parecer que melhora ao longo do tempo só porque o período tem mais anomalias, e por isso a evolução no tempo tem que ser lida sempre em relação ao baseline de cada fold.
 
 ---
 
@@ -120,15 +115,15 @@ Quanto à evolução no tempo, a AUC-PR da regra sobe de 0,443 para 0,592, mas a
 
 Para sabermos se um modelo é bom precisamos de uma régua para comparação, e por isso definimos dois baselines, ambos medidos com a AUC-PR, que é a nossa métrica principal.
 
-| Fold | Taxa de anomalia | No-skill (AUC-PR) | Regra (AUC-PR) |
-|---|---|---|---|
-| 1 | 15,8% | 0,158 | 0,443 |
-| 2 | 18,2% | 0,182 | 0,564 |
-| 3 | 21,1% | 0,211 | 0,592 |
+| Fold | Taxa de anomalia | No-skill (AUC-PR esperada) |
+|---|---|---|
+| 1 | 15,8% | 0,158 |
+| 2 | 19,7% | 0,197 |
+| 3 | 21,0% | 0,210 |
 
 O primeiro é o no-skill, ou seja, o mesmo modelo que prevê sempre normal que usamos no teste da acurácia. Como ele não ordena as sessões de nenhuma forma, a sua AUC-PR acaba por ser exatamente a taxa de anomalia de cada fold, como já tínhamos comentado nas métricas. Qualquer modelo que não passe desses valores não aprendeu nada.
 
-O segundo é uma regra simples, onde usamos diretamente a taxa de falhas do posto no dia anterior (post_previous_abnormal_rate_1D), que foi a variável mais correlacionada com o alvo na Task 1 (0,45), como pontuação de risco. Ou seja, quanto mais o posto falhou ontem, maior o risco da sessão de hoje ser anormal. Ela não precisa de treino nem de threshold e mesmo assim já é praticamente 3 vezes melhor que o no-skill em todos os folds.
+O segundo é uma regra simples, onde usamos diretamente a taxa de falhas do posto no dia anterior (post_previous_abnormal_rate_1D), que foi a variável mais correlacionada com o alvo (is_Abnormal) na Task 1 (0,45), como pontuação de risco. Ou seja, quanto mais o posto falhou ontem, maior o risco da sessão de hoje ser anormal. Ela não precisa de treino nem de threshold, por isso é uma régua simples de calcular em cada fold.
 
 Logo, a régua que realmente importa é a regra e não o no-skill. Se o modelo final não passar claramente da regra, significa que as outras variáveis (clima, localização, histórico do usuário, etc.) não estão a acrescentar nada ao que o histórico do posto já diz sozinho. A comparação tem sempre que ser feita fold a fold, visto que tanto a taxa de anomalia quanto o resultado da regra mudam de um período para outro.
 
@@ -145,14 +140,14 @@ A fim de fecharmos a Task 2, juntamos aqui tudo o que foi decidido. Este protoco
 | Preditores admitidos | as 28 colunas do CSV tratado (local, clima, tariff_period, histórico do posto e do usuário, user_active_sessions_at_start) e o Start Time, de onde vamos tirar a hora e o dia da semana |
 | Excluídos | End cause (só serve para o alvo), as 7 colunas geradas durante ou depois da sessão, Order creation time e electricity_price (redundantes) e as 6 variáveis com correlação acima de 0,9 |
 | A avaliar na modelação | UserID e Charging Post ID, comparando o modelo com e sem eles |
-| Divisão temporal | rolling-origin com treino de 11 meses e 3 folds com validações trimestrais (jan–mar, abr–jun e jul–set/2021); teste final em out–dez/2021, usado uma única vez |
+| Divisão temporal | 80% treino e 20% teste, por ordem cronológica; rolling-origin só dentro do treino, com treinos de 180 000 sessões e 3 folds com validações de 52 929 sessões (13/01 a 22/09/2021); teste final de 22/09 a 31/12/2021, usado uma única vez |
 | Pré-processamento | scaler, one-hot, limite de outliers, etc., ajustados só no treino de cada fold |
 | Erro mais grave | o FN (anomalia não detetada), sem ignorar o FP (alertas falsos demais) |
 | Métrica principal | AUC-PR |
 | Métricas complementares | recall, precision, F1, balanced accuracy, MCC e ROC-AUC (a acurácia não é usada) |
 | Threshold | o de maior precision entre os que garantem um recall mínimo, escolhido com as 3 validações juntas |
 | Métricas operacionais | alertas corretos, alertas falsos e anomalias perdidas a cada 1 000 sessões |
-| Baselines | no-skill (sempre normal, AUC-PR = taxa de anomalia do fold) e regra com a post_previous_abnormal_rate_1D (AUC-PR de 0,443, 0,564 e 0,592) |
+| Baselines | no-skill (sempre normal, AUC-PR = taxa de anomalia do fold) e regra com a post_previous_abnormal_rate_1D |
 | Agregação | média simples da AUC-PR para comparar modelos, sempre com o desvio-padrão, o pior fold e quantos folds o modelo ganha da regra; pooled para o threshold e as métricas operacionais |
 | Comparação estatística | nos folds pela média, desvio e folds ganhos (o Wilcoxon não serve com 3 folds); no teste final com o McNemar |
 
