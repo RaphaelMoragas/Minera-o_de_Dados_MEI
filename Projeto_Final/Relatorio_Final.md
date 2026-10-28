@@ -859,40 +859,53 @@ Car failures in the station history: some failures, such as the BMS ones or Vehi
 
 ---
 
-# Task 4 — Hyperparameter optimization and cross-validation
+# 4. Otimização de Modelos e Seleção do Limiar
 
-## 4.1 Chosen hyperparameters
+## 4.1. Otimização de hiperparâmetros
 
-Table 4.1 — Best hyperparameters on G3, searched on the 3 temporal folds of Task 2 with F1 as the score
+Foram otimizados os modelos **Random Forest** e **HistGradientBoosting**, utilizando apenas os dados de desenvolvimento e validação cruzada temporal. A pesquisa foi realizada com **GridSearchCV**, tendo o F1-score da classe positiva (`is_Abnormal = 1`) como métrica de otimização.
 
-| Model | Search | Best hyperparameters | F1 (mean across the folds) |
-|---|---|---|---|
-| Random Forest | `RandomizedSearchCV`, 10 combinations | `n_estimators=500`, `max_depth=None`, `min_samples_split=2`, `max_features='sqrt'` | nan (the 30 fits failed due to lack of memory) |
-| HistGradientBoosting | `BayesSearchCV`, 40 iterations | `learning_rate=0,037`, `max_depth=None`, `max_iter=393`, `min_samples_leaf=20` | 0,5243 |
+| Modelo | Hiperparâmetro pesquisado |
+|---|---|
+| Random Forest | `min_samples_split` |
+| HistGradientBoosting | `learning_rate` |
 
-## 4.2 Comparison of the thresholds
+As configurações finais foram escolhidas pelo melhor F1-score médio nas divisões temporais.
 
-Table 4.2 — Metrics on the OOF predictions of the 3 validations, with the default threshold (0,50) and with the threshold that maximizes F1 (searched from 0,05 to 0,95, in steps of 0,01)
+| Modelo | F1-score inicial | F1-score otimizado | Variação |
+|---|---:|---:|---:|
+| Random Forest | 0,4483 | 0,5464 | +0,0981 |
+| HistGradientBoosting | 0,5211 | 0,5218 | +0,0007 |
 
-| Model | Threshold | Precision | Recall | F1 | Alert rate | Correct alerts / 1 000 | False alerts / 1 000 | Missed anomalies / 1 000 |
-|---|---|---|---|---|---|---|---|---|
-| Random Forest | 0,50 | 0,7936 | 0,3268 | 0,4629 | 7,76% | 61,55 | 16,01 | 126,81 |
-| Random Forest | 0,29 | 0,5723 | 0,5263 | 0,5484 | 17,32% | 99,14 | 74,08 | 89,21 |
-| HistGradientBoosting | 0,50 | 0,4293 | 0,6873 | 0,5285 | 30,15% | 129,46 | 172,08 | 58,89 |
-| HistGradientBoosting | 0,63 | 0,5710 | 0,5455 | 0,5580 | 17,99% | 102,74 | 77,19 | 85,61 |
+Valores positivos na coluna “Variação” indicam melhoria após a otimização. O modelo selecionado foi **Random Forest**, por apresentar o melhor equilíbrio entre desempenho, estabilidade temporal e deteção de anomalias.
 
-## 4.3 Analysis of the results
+## 4.2. Seleção do limiar
 
-- **HistGradientBoosting with optimized threshold (0,63)** presents the best overall performance, with an **F1-score of 0,5580**.
-- The threshold optimization improved the F1-score of both models:
-	- Random Forest: **0,4629 → 0,5484**
-	- HistGradientBoosting: **0,5285 → 0,5580**
-- In HistGradientBoosting, increasing the threshold from **0,50 to 0,63** significantly reduced the false alerts (**172,08 → 77,19 per 1.000 sessions**), while maintaining a reasonable recall (**0,5455**).
-- The default threshold of HistGradientBoosting offers the highest recall (**0,6873**), but generates many false alerts and presents lower precision.
-- The optimized Random Forest has balanced performance, but stays slightly below the optimized HistGradientBoosting.
-- Thus, the recommended model is **HistGradientBoosting with threshold 0,63**, for presenting the highest F1-score and a more adequate trade-off between anomaly detection and number of false alerts.
+O limiar foi selecionado a partir de previsões *out-of-fold* temporais, maximizando o F1-score da classe positiva. O valor escolhido foi **0,64** e foi mantido fixo na avaliação final.
 
-The results were calculated on the temporal OOF predictions; therefore, the optimized threshold should later be confirmed on an independent temporal test set.
+| Métrica | Limiar 0,50 | Limiar selecionado (0,64) |
+|---|---:|---:|
+| Precisão | 0,4246 | 0,5774 |
+| Recall | 0,6914 | 0,5423 |
+| F1-score | 0,5261 | 0,5593 |
+| Taxa de alertas (%) | 30,67% | 17,69% |
+| Alertas corretos por 1 000 sessões | 130,2185 | 102,1368 |
+| Falsos alertas por 1 000 sessões | 176,4628 | 74,7479 |
+| Sessões anormais não detetadas por 1 000 sessões | 58,1345 | 86,2161 |
+
+A alteração do limiar representa um compromisso entre aumentar a deteção de sessões anormais e limitar os falsos alertas. A escolha final deve considerar tanto o F1-score como o impacto operacional dos alertas.
+
+## 4.3. Interpretação do modelo final
+
+Foi utilizada a importância das variáveis (`feature_importances_`) do **Random Forest** para identificar as variáveis mais relevantes nas previsões do modelo final. As importâncias foram associadas aos nomes gerados pelo `ColumnTransformer` por meio de `get_feature_names_out()` e ordenadas em ordem decrescente.
+
+| Posição | Variável | Importância/efeito |
+|---:|---|---:|
+| 1 | `remainder__post_previous_abnormal_rate_7D` | 0,1513 |
+| 2 | `remainder__post_previous_abnormal_rate_1D` | 0,1460 |
+| 3 | `remainder__post_hours_since_previous_completed...` | 0,1320 |
+
+As importâncias indicam associações utilizadas pelo modelo e não relações causais. Assim, os resultados devem ser interpretados em conjunto com o contexto dos dados e com as limitações do método aplicado.
 
 ---
 
