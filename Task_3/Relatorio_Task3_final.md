@@ -52,7 +52,7 @@ Já a variável UserID ficou de fora por questões de privacidade, visto que bas
 
 ### 2.2 Resultados
 
-**Tabela 2.2a** — AUC-PR na validação de cada fold, por modelo e grupo de variáveis
+Tabela 2.2a — AUC-PR na validação de cada fold, por modelo e grupo de variáveis
 
 | Modelo | Grupo | Fold 1 | Fold 2 | Fold 3 | Média | Desvio | Pior fold | Folds > regra |
 |---|---|---|---|---|---|---|---|---|
@@ -67,7 +67,7 @@ Já a variável UserID ficou de fora por questões de privacidade, visto que bas
 | HistGB | G3 | 0,538 | 0,661 | 0,642 | 0,613 | 0,066 | 0,538 | 3 |
 | HistGB | G4 | 0,564 | 0,679 | 0,653 | 0,632 | 0,061 | 0,564 | 3 |
 
-**Tabela 2.2b** — Ganho de AUC-PR ao acrescentar cada grupo (diferença para o grupo anterior)
+Tabela 2.2b — Ganho de AUC-PR ao acrescentar cada grupo (diferença para o grupo anterior)
 
 | Modelo | Variáveis acrescentadas | Fold 1 | Fold 2 | Fold 3 | Média |
 |---|---|---|---|---|---|
@@ -89,3 +89,111 @@ A tarifa acaba por ser um facilitador do trabalho da árvore, mas é apenas uma 
 No fundo o histórico do posto acaba por ser, de longe, o grupo que mais contribui nas análises. Em relação ao acaso, os modelos passam de cerca de 1,5× para cerca de 3× (tabela 2.6). Ao passar do G2 para o G3, a AUC-PR sobe em média +0,29 na LR e +0,32 no HistGB (tabela 2.2b), enquanto a tarifa não traz quase nada e o histórico do usuário traz cerca de +0,02.
 
 Além disso, com o G3, os dois modelos passam a ganhar da regra nos 3 folds, o que não acontecia com os grupos 1 e 2. Como a regra usa apenas a rate_1D, isso mostra que juntar o histórico completo do posto (7 e 30 dias, horas desde a última falha, entre outras variáveis) acaba por trazer mais informação além da do dia anterior.
+
+
+### 2.5 O histórico do utilizador traz benefício adicional?
+
+O histórico do usuário acaba por trazer um benefício pequeno, mas consistente. Ao passar do grupo 3 para o grupo 4, a AUC-PR sobe em média +0,017 na LR e +0,019 no HistGB (tabela 2.2b), bem menos do que o histórico do posto, mas o ganho é positivo nas 6 comparações (3 folds × 2 modelos). Porém, esse ganho acaba por diminuir do fold 1 para o fold 3 (de +0,026 para cerca de +0,01 nos dois modelos). Uma hipótese é que, com o tempo, entram mais usuários novos, sem histórico, e assim o histórico do usuário acaba por ajudar menos, mas isso não foi verificado
+
+### 2.6 O efeito é consistente entre períodos?
+
+Tabela 2.6 — AUC-PR a dividir pela prevalência de cada fold (quantas vezes melhor do que o acaso)
+
+| Modelo | Grupo | Fold 1 | Fold 2 | Fold 3 |
+|---|---|---|---|---|
+| Regra | — | 2,85× | 3,06× | 2,81× |
+| LR | G1 | 1,58× | 1,58× | 1,59× |
+| LR | G2 | 1,58× | 1,58× | 1,59× |
+| LR | G3 | 3,21× | 3,23× | 2,93× |
+| LR | G4 | 3,37× | 3,31× | 2,98× |
+| HistGB | G1 | 1,47× | 1,53× | 1,63× |
+| HistGB | G2 | 1,48× | 1,53× | 1,65× |
+| HistGB | G3 | 3,41× | 3,36× | 3,05× |
+| HistGB | G4 | 3,57× | 3,45× | 3,10× |
+
+Prevalência de cada fold (= AUC-PR do no-skill): 15,8% · 19,7% · 21,0%.
+
+No geral, sim, o efeito acaba por ser consistente. Olhando a tabela 2.2b, todos os ganhos têm o mesmo sinal nos 3 folds, ou seja, nenhum grupo de variáveis piora o modelo em algum período. O histórico do posto e o histórico do usuário sobem a AUC-PR nos 3 folds e nos dois modelos, e a tarifa fica praticamente em zero em todos eles.
+
+Já na tabela 2.6, a AUC-PR foi dividida pela prevalência de cada fold, pois a AUC-PR do acaso muda de fold para fold (15,8%, 19,7% e 21,0%), e assim temos quantas vezes o modelo é melhor do que o acaso. No fold 3, os modelos com o histórico do posto acabam por cair (o HistGB no grupo 3 passa de 3,36× para 3,05×), mas a regra também cai (de 3,06× para 2,81×). Como a regra não é treinada, isso indica que a queda vem principalmente do próprio período, e não dos modelos em si.
+
+### 2.7 Preocupações operacionais e éticas
+
+Tabela 2.7 — HistGB no G3, avaliado em subgrupos de sessões (o modelo é o mesmo; muda só o conjunto avaliado)
+
+|  | Fold 1 | Fold 2 | Fold 3 |
+|---|---|---|---|
+| AUC-PR — todas as sessões | 0,538 | 0,661 | 0,642 |
+| AUC-PR — sem as sessões de frota | 0,539 | 0,660 | 0,643 |
+| AUC-PR — só as sessões de frota | 0,504 | 0,685 | 0,618 |
+| Prevalência — todas as sessões | 15,8% | 19,7% | 21,0% |
+| Prevalência — só as sessões de frota | 14,0% | 19,9% | 21,8% |
+| Todas as sessões ÷ prevalência | 3,41× | 3,36× | 3,05× |
+| Só frotas ÷ prevalência das frotas | 3,61× | 3,44× | 2,83× |
+| Nº de sessões de frota | 2097 | 2410 | 2481 |
+
+Com o G4, temos um grande problema, o risco de uma sessão acabar por depender também de quem está carregando o veículo. Isso pode marcar usuários por falhas que não causaram e deixar as contas de frota dominarem o padrão. Como o alerta vai apenas para o operador e não bloqueia a sessão, um erro custa no máximo uma inspeção a mais, mas mesmo assim foi um dos motivos para escolhermos o G3.
+
+O histórico do posto também tem os seus problemas: falhas que vêm do carro (como o Vehicle charging faults, que tbm acaba por não ser culpa do usuário) acabam por contar contra o posto, e postos novos ou com poucas sessões têm um histórico pouco confiável. Já a tabela 2.7 mostra que, no G3, tirar as sessões de frota quase não muda a AUC-PR, ou seja, o modelo funciona de forma parecida para as frotas e para o resto. O limite é que são apenas 2 contas de frota.
+
+### 2.8 Variáveis adicionais
+
+Tabela 2.8 — HistGB no G3, com e sem o `Charging Post ID` (em one-hot)
+
+| Modelo | Fold 1 | Fold 2 | Fold 3 | Média | Desvio | Pior fold | Folds > regra |
+|---|---|---|---|---|---|---|---|
+| HistGB G3 | 0,538 | 0,661 | 0,642 | 0,613 | 0,066 | 0,538 | 3 |
+| HistGB G3 + `Charging Post ID` | 0,538 | 0,661 | 0,639 | 0,613 | 0,066 | 0,538 | 3 |
+| Diferença (com − sem) | +0,0001 | −0,0001 | −0,0024 | −0,0008 | — | — | — |
+
+A hora e o dia da semana já foram justificados na secção 1. O Charging Post ID foi testado no HistGB com o G3 e não trouxe ganho (tabela 2.8), o que faz sentido, já que o histórico do posto já descreve cada posto e o ID não ajuda com postos novos. O UserID não foi testado, por questões de privacidade, e foi usado apenas para identificar as contas de frota (39 e 23). Na Task 1, estas foram as únicas contas com mais de 2 sessões abertas ao mesmo tempo, com milhares de carregamentos.
+
+
+### 2.9 Grupo escolhido para os modelos
+
+Acabamos por escolher o G3 para os modelos (já separamos o G4 como o final por esse motivo). O G4 acaba por ser um pouco melhor (cerca de +0,02 de AUC-PR), mas o ganho é pequeno e traz os problemas éticos da secção 2.7, além de ir contra a exclusão do UserID. O protocolo da Task 2 diz quais variáveis podem ser usadas, mas não obriga a usar todas.
+
+
+---
+
+## 3. Modelos individuais
+
+### 3.1 Algoritmos escolhidos
+
+**Tabela 3.1** — Princípios de modelação
+
+| Princípio | Algoritmo | Usado |
+|---|---|---|
+| Linear | Regressão logística | ✅ |
+| Probabilístico | Naive Bayes (versão mista) | ✅ |
+| Árvores de decisão | Árvore de decisão (profundidade 6) | ✅ |
+| Baseado em instâncias | kNN | — |
+| Baseado em kernels | SVM | — |
+
+Escolhemos três modelos com princípios diferentes: a regressão logística (linear), o Naive Bayes misto (probabilístico) e a árvore de decisão (árvores). Cada um acaba por olhar os dados de um jeito diferente, são rápidos de treinar e fáceis de interpretar. 
+
+O kNN e o SVM acabram por ficar de fora devido ao tamanho dos dados: com cerca de 180 000 sessões por treino, o kNN precisaria guardar todas as sessões e comparar cada sessão nova com todas elas, e o SVM acaba por ficar muito lento para treinar. Como o próprio enunciado diz, usar muitos algoritmos sem análise não é melhor do que uma comparação menor e bem justificada.
+
+### 3.2 Justificação pelos seis critérios
+
+A regressão logística foi escolhida pela interpretabilidade, já que os coeficientes mostram o sinal e o tamanho do efeito de cada variável no risco de anomalia. 
+
+Já o Naive Bayes misto acaba por ser o modelo mais barato, pois treinar é apenas contar frequências nas categóricas e calcular médias e desvios nas numéricas. 
+
+Por dim a árvore de decisão consegue apanhar limiares e interações entre variáveis (por exemplo, local × histórico do posto) sem precisar de escala.
+
+O guia pergunta qual o pressuposto violado e a resposta acaba por ser o pressuposto de independência do Naive Bayes é violado aqui, o que aparece nas probabilidades extremas (72%, tabela 3.4)
+
+### 3.3 Profundidade da árvore
+
+**Tabela 3.3** — Árvore de decisão no G3 com várias profundidades
+
+| `max_depth` | Treino (média) | Fold 1 | Fold 2 | Fold 3 | Média | Desvio | Pior fold | Folds > regra |
+|---|---|---|---|---|---|---|---|---|
+| 3 | 0,505 | 0,437 | 0,568 | 0,544 | 0,516 | 0,070 | 0,437 | 0 |
+| 4 | 0,542 | 0,469 | 0,602 | 0,582 | 0,551 | 0,072 | 0,469 | 1 |
+| **6** | 0,576 | 0,503 | 0,626 | 0,606 | 0,578 | 0,066 | 0,503 | 3 |
+| 8 | 0,599 | 0,504 | 0,637 | 0,585 | 0,575 | 0,067 | 0,504 | 2 |
+| 10 | 0,621 | 0,485 | 0,611 | 0,561 | 0,552 | 0,063 | 0,485 | 2 |
+| 12 | 0,652 | 0,433 | 0,554 | 0,522 | 0,503 | 0,063 | 0,433 | 0 |
+| Sem limite | 1,000 | 0,199 | 0,274 | 0,276 | 0,249 | 0,044 | 0,199 | 0 |
