@@ -1,291 +1,291 @@
-# Relatório final — Project 1: Classification of Abnormal Electric-Vehicle Charging Sessions
+# Final report — Project 1: Classification of Abnormal Electric-Vehicle Charging Sessions
 
-## Participantes
+## Participants
 
 - 1220665 - Nuno Marinho
 - 1221083 - Rodrigo Cardoso
 - 1260464 - Raphael Moragas
 
-Todos os números citados vêm do Projeto_MINDD_Final.ipynb. No notebook, quando a numeração de uma secção não coincide com a do relatório, o título indica entre parênteses a secção correspondente do relatório.
+All the numbers cited come from Projeto_MINDD_Final.ipynb. In the notebook, when the numbering of a section does not match that of the report, the title indicates in parentheses the corresponding section of the report.
 
 ---
 
-# Task 1 — Compreensão, auditoria e preparação dos dados
+# Task 1 — Understanding, auditing and preparing the data
 
-## 1.1 Carregamento e visão geral
+## 1.1 Loading and overview
 
-O dataset tem 441 077 linhas e 47 colunas. É possivel observar que 4 colunas de datas (Start time, End Time, Payment Time e Order creation time) foram lidas como texto (string) e precisam de ser convertidas para alguma forma de data antes que possamos fazer qualquer tipo de conta com a mesma. Também é possivel observar que apenas 4 colunas têm valores ausentes, todas do grupo de atributos históricos (post_hours_since_previous_completed_session, post_hours_since_previous_completed_abnormal, user_days_since_previous_completed_session, user_days_since_previous_completed_abnormal).
+The dataset has 441077 rows and 47 columns. It is possible to observe that 4 date columns (Start time, End Time, Payment Time and Order creation time) were read as text (string) and need to be converted to some form of date before we can do any kind of calculation with them. It is also possible to observe that only 4 columns have missing values, all from the group of historical attributes (post_hours_since_previous_completed_session, post_hours_since_previous_completed_abnormal, user_days_since_previous_completed_session, user_days_since_previous_completed_abnormal).
 
 ---
 
-## 1.2 Qualidade dos dados
+## 1.2 Data quality
 
-### 1.2.1 Valores ausentes
+### 1.2.1 Missing values
 
-Sabemos então quantos valores faltam mas não o pq desses valores estarem faltando. Por exemplo: Se um usuário nunca teve uma falha ele terá NaN no seu estado e não há valor para se inventar nesse caso. O NaN por sí só já é a informação final.
+So we know how many values are missing but not why those values are missing. For example: If a user never had a failure they will have NaN in their state and there is no value to invent in that case. The NaN by itself is already the final information.
 
 #### post_hours_since_previous_completed_session × post_no_previous_completed_session
 
-As linhas indicam se o valor está ausente (True) ou não (False); as colunas indicam a flag (1 = o posto nunca teve uma sessão concluída antes).
+The rows indicate whether the value is missing (True) or not (False); the columns indicate the flag (1 = the station never had a completed session before).
 
-Existem 92 ids unicos de posto, ou seja, 92 postos diferentes entram nesta avaliação.
+There are 92 unique station ids, that is, 92 different stations enter this evaluation.
 
-- 92 sessões têm NaN e o posto não tinha histórico (flag 1). É o esperado pois essas seriam as primeiras sessões de um posto que acabou de iniciar o armazenamento dos dados.
-- 440985 sessões têm valor e o posto já tinha histórico (flag 0). É o esperado pois os postos já tiveram uma primeira sessão antes.
-- As outras duas células são 0: não existe nenhum NaN num posto com histórico (False 1), nem nenhum valor preenchido num posto sem histórico (True 0).
+- 92 sessions have NaN and the station had no history (flag 1). This is expected because these would be the first sessions of a station that has just started storing the data.
+- 440985 sessions have a value and the station already had history (flag 0). This is expected because the stations already had a first session before.
+- The other two cells are 0: there is no NaN in a station with history (False 1), nor any filled value in a station without history (True 0).
 
-Os 92 casos correspondem exatamente aos 92 postos do dataset, ou seja, na primeira sessão de cada posto, que não tem uma sessão anterior com que se comparar. O NaN é, portanto, estrutural e não um erro.
+The 92 cases correspond exactly to the 92 stations of the dataset, that is, in the first session of each station, which does not have a previous session to compare itself with. The NaN is, therefore, structural and not an error.
 
 #### post_hours_since_previous_completed_abnormal × post_no_previous_completed_abnormal
 
-- 440710 sessões têm valor e o posto já tinha tido pelo menos uma falha.
-- 367 sessões têm NaN e o posto ainda não tinha registado nenhuma falha.
-- Fora da diagonal, 0 casos.
+- 440710 sessions have a value and the station had already had at least one failure.
+- 367 sessions have NaN and the station had not yet recorded any failure.
+- Off the diagonal, 0 cases.
 
-As 367 sessões são as que ocorreram em cada posto antes da sua primeira falha. Sem uma falha anterior, não existe "tempo desde a última falha". Este NaN também é estrutural.
+The 367 sessions are the ones that occurred at each station before its first failure. Without a previous failure, there is no "time since the last failure". This NaN is also structural.
 
 #### user_days_since_previous_completed_session × user_no_previous_completed_session
 
-- 384430 sessões têm valor e o usuário já tinha pelo menos uma sessão concluída.
-- 56647 sessões têm NaN e o usuário não tinha nenhuma sessão concluída antes.
-- Fora da diagonal, 0 casos.
+- 384430 sessions have a value and the user already had at least one completed session.
+- 56647 sessions have NaN and the user had no completed session before.
+- Off the diagonal, 0 cases.
 
-Destas 56647, 56115 são a primeira sessão de cada usuário (o dataset tem exatamente 56115 usuários distintos). As restantes 532 são sessões iniciadas enquanto a primeira sessão do mesmo usuário ainda decorria: como o enunciado explica, sessões ainda ativas não contam como "concluídas", por isso continua a não existir uma sessão anterior concluída.
-Novamente os resultados acabam por ser um NaN estrutural e não precisamos modificar nada nestas linhas.
+Of these 56647, 56115 are the first session of each user (the dataset has exactly 56115 distinct users). The remaining 532 are sessions started while the first session of the same user was still in progress: as the assignment statement explains, sessions that are still active do not count as "completed", so there is still no previous completed session.
+Again the results end up being a structural NaN and we do not need to modify anything in these rows.
 
 #### user_days_since_previous_completed_abnormal × user_no_previous_completed_abnormal
 
-- 304798 sessões têm valor e o usuário já tinha tido pelo menos uma falha.
-- 136279 sessões (cerca de 31%) têm NaN e o usuário nunca tinha tido uma falha.
-- Fora da diagonal, 0 casos.
+- 304798 sessions have a value and the user had already had at least one failure.
+- 136279 sessions (about 31%) have NaN and the user had never had a failure.
+- Off the diagonal, 0 cases.
 
-É a coluna com mais ausentes, o que faz sentido: muitos usuários têm poucas sessões e nunca passaram por uma falha. E, pela ultima vez, o NaN que encontramos aqui continua sendo estrutural e, logo, não precisamos modificar ou alterar os dados.
+It is the column with the most missing values, which makes sense: many users have few sessions and never went through a failure. And, for the last time, the NaN that we find here is still structural and, therefore, we do not need to modify or alter the data.
 
-#### Conclusão e decisão para as 4 colunas
+#### Conclusion and decision for the 4 columns
 
-Em todos os casos, os valores ausentes coincidem exatamente com as flags _no_previous_. Acabam apenas por ser ausencias estruturais, não erros no registo ou adição errônea de informação. Por isso, não serão modificados com média ou mediana de valores no mesmo escopo, porque isso inventaria um histórico inexistente e apagaria a diferença entre "falhou há muito tempo" e "nunca falhou".
+In all cases, the missing values coincide exactly with the _no_previous_ flags. They end up being just structural absences, not errors in the recording or erroneous addition of information. Therefore, they will not be modified with the mean or median of values in the same scope, because that would invent a non-existent history and would erase the difference between "failed a long time ago" and "never failed".
 
-### 1.2.2 Dados duplicados
+### 1.2.2 Duplicate data
 
-Verificando-se pelo comando, não existem linhas duplicadas no dataset, por isso não é necessária nenhuma ação para esse tipo de problema.
+Checking with the command, there are no duplicate rows in the dataset, so no action is needed for this type of problem.
 
-### 1.2.3 Espaços escondidos no texto e conversão de datas
+### 1.2.3 Hidden spaces in the text and date conversion
 
-Fizemos então a conversão dos valores de datas de string para date a fim de podermos realizar contas com os valores da tabela.
+We then did the conversion of the date values from string to date in order to be able to perform calculations with the values of the table.
 
-Um ponto importante é que apenas itens com tipo object ou string podem ter um tab final escondido no meio do texto, como o tipo das datas já foram modificadas e perderam automaticamente o tab final iremos procurar nos outros itens que tenhas os tipos em que esse problema possa aparecer.
+An important point is that only items with type object or string can have a hidden trailing tab in the middle of the text; since the type of the dates has already been modified and they automatically lost the trailing tab, we will search in the other items that have the types in which this problem can appear.
 
-Após modificados os itens problemáticos vemos que nenhum item com o tipo object ou string tem mais erros de escrita que possam dividir resultados, trazendo incossitencia nos dados.
+After modifying the problematic items we see that no item with type object or string has any more writing errors that could split results, bringing inconsistency to the data.
 
-### 1.2.4 Consistência e valores extremos
+### 1.2.4 Consistency and extreme values
 
-#### Pagamento antes do fim da sessão
+#### Payment before the end of the session
 
-Em 87202 sessões (~20%) o pagamento aparece registado antes do fim da sessão. Olhando a diferença entre os dois horários, ela é pequena (mediana de 24 segundos), então parece ser uma diferença de registo entre sistemas e não um erro grave, mas podemos estar errados.
+In 87202 sessions (~20%) the payment appears recorded before the end of the session. Looking at the difference between the two times, it is small (median of 24 seconds), so it seems to be a recording difference between systems and not a serious error, but we may be wrong.
 
-Como Payment time é uma coluna que só existe depois da sessão e não vai ser usada no modelo, não fazemos nenhuma correção. Fica só registado como uma inconsistência dos dados.
+Since Payment time is a column that only exists after the session and will not be used in the model, we do not make any correction. It is just recorded as an inconsistency of the data.
 
-#### Valores monetários e sessões com 0 kWh
+#### Monetary values and sessions with 0 kWh
 
-Os valores monetários parecem ser consistentes: em nenhuma sessão o total é diferente da soma de eletricidade + serviço, e em nenhuma o valor pago é maior que o total pelo que podemos verificar.
+The monetary values seem to be consistent: in no session is the total different from the sum of electricity + service, and in none is the amount paid greater than the total as far as we can verify.
 
-Existem 54621 sessões (aproximadamente 12%) com 0 kWh carregados. Isto não é um erro, são sessões que terminaram sem carregar energia, mais a frente iremos verificar se se elas são de um erro (se são sessões anormais). Por isso essas linhas serão mantidas por enquanto.
+There are 54621 sessions (approximately 12%) with 0 kWh charged. This is not an error, they are sessions that ended without charging energy; further ahead we will check whether they come from an error (whether they are abnormal sessions). Therefore these rows will be kept for now.
 
-#### Clima
+#### Weather
 
-Verificamos se os valores do clima fazem sentido para Jiaxing (leste da China, clima subtropical):
+We checked whether the weather values make sense for Jiaxing (eastern China, subtropical climate):
 
-- Temperatura entre -3,2 °C e 33,6 °C: plausível para inverno e verão da região.
-- Umidade entre 32% e 99%: dentro do intervalo possível (0–100%).
-- Precipitação entre 0 e 152,1 mm: a maioria das sessões não tem chuva (a mediana é 0), e os valores mais altos podem ser dias de chuva forte. Nada que pareça ser anormal para a região e o tipo de clima.
+- Temperature between -3,2 °C and 33,6 °C: plausible for the winter and summer of the region.
+- Humidity between 32% and 99%: within the possible range (0–100%).
+- Precipitation between 0 and 152,1 mm: most sessions have no rain (the median is 0), and the highest values may be days of heavy rain. Nothing that seems to be abnormal for the region and the type of climate.
 
-Nenhum valor parece impossível, então não removemos e nem alteramos nada. Os valores mais altos de precipitação são extremos, mas verossímeis.
+No value seems impossible, so we neither removed nor altered anything. The highest precipitation values are extreme, but believable.
 
-#### Valores negativos
+#### Negative values
 
-A única coluna numérica com valores negativos é a temperatura (com 2052 sessões), e todos esses casos acontecem em dezembro de 2020, ou seja, no inverno. Temperaturas abaixo de zero são normais nessa época, então não parece ser um erro.
+The only numeric column with negative values is temperature (with 2052 sessions), and all of these cases happen in December 2020, that is, in winter. Temperatures below zero are normal at that time of year, so it does not seem to be an error.
 
-Nenhuma outra coluna (energia, custos, contagens do histórico) tem valores negativos nos seus mínimos, o que era esperado porque não faria sentido.
+No other column (energy, costs, history counts) has negative values in its minimums, which was expected because it would not make sense.
 
-#### Conclusão da 1.2.4
+#### Conclusion of 1.2.4
 
-Não encontramos inconsistências que exijam corrigir ou remover linhas. As pequenas diferenças de horário afetam apenas colunas que não irão entrar no modelo, e os valores extremos de clima (mínimos e máximos) são plausíveis para a região dos quais os dados estão sendo retirados.
+We did not find inconsistencies that require correcting or removing rows. The small time differences affect only columns that will not enter the model, and the extreme weather values (minimums and maximums) are plausible for the region from which the data are being taken.
 
-### 1.2.5 Outliers nas variáveis preditoras
+### 1.2.5 Outliers in the predictor variables
 
-#### 1.2.5.1 Outliers do histórico do posto = sinal, não erro
-
-
-Os valores que nós vemos de outliers acabam por vir de postos com uma proporção alta de sessões anormais recentes. No post_previous_abnormal_rate_1D acabamos por ter 6,4% de outliers que são de sessões em que o posto teve mais de 46% de sessões anormais no dia anterior.
-
-Já no post_previous_abnormal_rate_7D conseguimos observar que 6,7% das sessões ocorreram num posto com mais de 47% de sessões anormais num período de 7 dias e com o post_previous_abnormal_rate_30D vemos que 5,7% ocorreram em um posto com mais de 49% de sessões anormais em 30 dias.
-
-Lembrando que os três valores são rates, então dá para comparar as três janelas entre si. Se quisermos ver os valores em absoluto seria só utilizar as medições de post_previous_abnormal_1D, post_previous_abnormal_7D e post_previous_abnormal_30D. Ao utilizar esses itens teriamos o valor absoluto, X% de sessões anormais em postos com mais de Y sessões anormais.
-
-#### 1.2.5.2 Tempo desde a última sessão do posto: cauda muito longa
-
-Ao observarmos a variavel post_hours_since_previous_completed_session conseguimos observar uma escala extrema, sendo apenas possivel observar utilizando a logaritmica no plot. A variável tem uma mediana de 0,48h ou 29 min de tempo entre sessões completas, um máximo de 5137h ou praticamente 7 meses parado e com uma assimetria ou skew de praticamente 110, a maior em todo o dataset. 
-
-Ou seja, a maior parte dos nossos valores são pequenos e os poucos valores extremos podem indicar que o posto em questão possa ter ficado parado devido a uma manutenção ou alguma impossibilidade que impediu os condutores de abastecer naquele local. Em geral os valores encontrados parecem verossímeis. Novamente, não é um erro, apenas uma escala extrema.
+#### 1.2.5.1 Station history outliers = signal, not error
 
 
-#### 1.2.5.3 Contadores do usuário: dominados pelas contas de frota
+The values that we see as outliers end up coming from stations with a high proportion of recent abnormal sessions. In post_previous_abnormal_rate_1D we end up having 6,4% of outliers that are from sessions in which the station had more than 46% abnormal sessions on the previous day.
 
-Nosso user_previous_sessions_730D tem uma mediana de 21, um p99 de 10172 e um máximo de 14566. Isso indicaria que, assim como a distribuição anterior, a distribuição é muito assimétrica, onde a ponta da direita, os maiores números de carregamentos, depende de uma ou 2 contas.
+As for post_previous_abnormal_rate_7D we can observe that 6,7% of the sessions occurred at a station with more than 47% abnormal sessions in a period of 7 days and with post_previous_abnormal_rate_30D we see that 5,7% occurred at a station with more than 49% abnormal sessions in 30 days.
 
-Os usuários 39 e 23 tem, em valores absolutos, 14584 e 6748 carregamentos. Uma média de 6050 sessões de carregamento, onde um usuário médio tem uma média de aproximadamente 64 carregamentos.
+Keeping in mind that the three values are rates, so it is possible to compare the three windows with each other. If we want to see the values in absolute terms it would just be a matter of using the measurements of post_previous_abnormal_1D, post_previous_abnormal_7D and post_previous_abnormal_30D. By using these items we would have the absolute value, X% of abnormal sessions at stations with more than Y abnormal sessions.
 
-Na user_previous_sessions_30D um usuário chega a ter 2605 carregamentos em 30 dias, o que seria algo em torno de 87 carregamentos por dia, sendo impossível para uma pessoa carregar o carro quase que 3 vezes por dia.
+#### 1.2.5.2 Time since the station's last session: very long tail
 
-É no user_active_sessions_at_start que conseguimos entender o que se passa. 95% das sessões tem valor 0, ou seja, na esmagadora maioria das vezes um usuário apenas carrega 1 carro por vez. Já o numero máximo de carregamentos por vez é 14, indicando que provavelmente se trata de carros. 
+When we observe the variable post_hours_since_previous_completed_session we can observe an extreme scale, being only possible to observe it using the logarithmic scale in the plot. The variable has a median of 0,48h or 29 min of time between completed sessions, a maximum of 5137h or practically 7 months stopped and an asymmetry or skew of practically 110, the largest in the whole dataset.
 
-Essa ideia é confirmada quando vemos que os userIDs com numeros de sessão maiores que 2 são exatamente o 39 e 23 de antes. Isso provavelmente indica que são contas empresariais ou algo do gênero que possuem uma frota de carros. 
-
-Logo, mantemos esses dados e como forma de vizualizar os mesmos utilizamos a escala logarítmica.
+In other words, most of our values are small and the few extreme values may indicate that the station in question may have been stopped due to maintenance or some impossibility that prevented drivers from charging at that location. In general the values found seem believable. Again, it is not an error, just an extreme scale.
 
 
-#### 1.2.5.4 Clima: sem outliers problemáticos
+#### 1.2.5.3 User counters: dominated by fleet accounts
 
-Temperatura e umidade tem uma assimetria de aproximadamente −0,4 e praticamente nenhum outlier no dado amostral.
+Our user_previous_sessions_730D has a median of 21, a p99 of 10172 and a maximum of 14566. This would indicate that, like the previous distribution, the distribution is very asymmetric, where the right end, the largest numbers of charges, depends on one or 2 accounts.
 
-Já na Precipitação temos um problema: a regra do IQR marca 19% como outlier. Porém a mediana é 0 (58% das sessões sem chuva). Pesquisando um pouco mais vê-se que o IRQ como medida não serve para variáveis cujos dados tenham muitos valos iguais a 0
+Users 39 and 23 have, in absolute values, 14584 and 6748 charges. An average of 6050 charging sessions, where an average user has an average of approximately 64 charges.
+
+In user_previous_sessions_30D one user reaches 2605 charges in 30 days, which would be something around 87 charges per day, it being impossible for one person to charge the car almost 3 times per day.
+
+It is in user_active_sessions_at_start that we manage to understand what is going on. 95% of the sessions have value 0, that is, in the overwhelming majority of times a user only charges 1 car at a time. As for the maximum number of charges at a time, it is 14, indicating that it probably concerns cars.
+
+This idea is confirmed when we see that the userIDs with session numbers greater than 2 are exactly 39 and 23 from before. This probably indicates that they are business accounts or something of the kind that own a fleet of cars.
+
+Therefore, we keep these data and as a way of visualizing them we use the logarithmic scale.
 
 
-#### Decisão final
+#### 1.2.5.4 Weather: no problematic outliers
 
-Depois de analisar os outliers das variáveis preditoras, decidimos por não remover nenhuma linha do dataset. Como vimos nos pontos anteriores, todos os valores extremos acabam por ter uma explicação real e plausível. Pode ser um posto com muitas sessões anormais, um posto que ficou muito tempo parado ou uma conta que parece pertencer a uma empresa (há de se ficar atento a esse último dado na hora da modelação, visto que eles podem atrapalhar o aprendizado do madelo). Removê-los seria jogar informação verdadeira fora.
+Temperature and humidity have an asymmetry of approximately −0,4 and practically no outliers in the sample data.
 
-Também decidimos não limitar as variáveis de falhas do posto. É justamente nos valores altos dessas variáveis que conseguimos observar o sinal que queremos prever, como vamos ver na secção 1.4. Já para as contagens e os tempos com assimetria acima de 3, a ideia é aplicar uma transformação logarítmica (log1p) caso o modelo seja linear ou baseado em distância, como a regressão logística, o KNN ou o SVM. Nos modelos de árvore isso não é necessário, já que eles não são afetados pela escala das variáveis.
+As for Precipitation we have a problem: the IQR rule marks 19% as outliers. However the median is 0 (58% of the sessions without rain). Researching a bit more one sees that the IRQ as a measure does not work for variables whose data have many values equal to 0
 
-Lembrando que, se em algum momento formos limitar os dados, o limite (por exemplo o p99) deve ser calculado apenas no conjunto de treino, para não vazar informação do teste para o modelo. O enunciado pede explicitamente para este fato ser documentado, então fica aqui registrado.
 
-Por fim, a única limitação que conseguimos observar, como dito anteriormente, é que as contas de frota podem acabar por dominar o aprendizado do modelo, já que possuem valores muito diferentes de todos os outros usuários. Ou seja, na fase de modelação vale a pena avaliar o modelo com e sem essas contas para avaliar se o resultado muda consideravelmente.
+#### Final decision
+
+After analyzing the outliers of the predictor variables, we decided not to remove any row from the dataset. As we saw in the previous points, all the extreme values end up having a real and plausible explanation. It may be a station with many abnormal sessions, a station that was stopped for a long time or an account that seems to belong to a company (one must pay attention to this last data point at modeling time, since they may hinder the learning of the model). Removing them would be throwing true information away.
+
+We also decided not to cap the station failure variables. It is precisely in the high values of these variables that we can observe the signal we want to predict, as we will see in section 1.4. As for the counts and times with asymmetry above 3, the idea is to apply a logarithmic transformation (log1p) in case the model is linear or distance-based, such as logistic regression, KNN or SVM. In tree models this is not necessary, since they are not affected by the scale of the variables.
+
+Keeping in mind that, if at some point we are going to cap the data, the limit (for example the p99) must be calculated only on the training set, so as not to leak information from the test to the model. The assignment statement explicitly asks for this fact to be documented, so it is recorded here.
+
+Finally, the only limitation that we can observe, as said before, is that the fleet accounts may end up dominating the learning of the model, since they have values very different from all the other users. That is, in the modeling phase it is worth evaluating the model with and without these accounts to assess whether the result changes considerably.
 
 ---
 
-## 1.3 Definição da variável alvo
+## 1.3 Definition of the target variable
 
-### 1.3.1 Disponibilidade das variáveis no início da sessão
+### 1.3.1 Availability of the variables at the start of the session
 
-Como a previsão deve ser feita no início da sessão, cada variável foi classificada segundo a sua disponibilidade nesse momento. As variáveis registadas durante ou após a sessão foram excluídas dos preditores para evitar o que se foi pedido no enunciado ("The prediction must represent a decision made when a charging session starts. Consequently, only information that would reasonably be available at that time may be used as a predictor"), sendo usadas apenas na análise exploratória.
+Since the prediction must be made at the start of the session, each variable was classified according to its availability at that moment. The variables recorded during or after the session were excluded from the predictors to avoid what was asked in the assignment statement ("The prediction must represent a decision made when a charging session starts. Consequently, only information that would reasonably be available at that time may be used as a predictor"), being used only in the exploratory analysis.
 
 ### 1.3.2 electricity_price × tariff_period
 
-A variável electricity_price tem só 3 valores (0,38 / 0,90 / 1,21). Na prática é categórica e repete a informação do tariff_period. Logo são informações redundantes por definição das mesmas. Ou seja, caso usemos uma não precisamos da outra.
+The variable electricity_price has only 3 values (0,38 / 0,90 / 1,21). In practice it is categorical and repeats the information of tariff_period. Therefore they are redundant information by their very definition. That is, if we use one we do not need the other.
 
 
-### 1.3.3 Tabela de classificação das colunas
+### 1.3.3 Column classification table
 
-Para cada uma das 48 colunas (as 47 originais mais a is_Abnormal que criámos) fizemos a mesma pergunta: "este valor já é conhecido quando a sessão começa?". A resposta fica na coluna 'disponibilidade' da tabela e, a partir dela, já a coluna 'uso' indica o que vamos fazer com cada variável. No fim ficamos com cinco grupos:
+For each of the 48 columns (the 47 original ones plus the is_Abnormal that we created) we asked the same question: "is this value already known when the session starts?". The answer is in the 'availability' column of the table and, from it, the 'use' column indicates what we are going to do with each variable. In the end we are left with five groups:
 
-| Disponibilidade | Uso | Colunas | Porquê |
+| Availability | Use | Columns | Why |
 |---|---|---|---|
-| Início | Feature | localização, hora de início, clima, tariff_period e histórico do posto e do usuário | já são conhecidas quando a sessão começa |
-| Depois do fim | Só EDA | energia, custos, hora de fim, pagamento e End cause | só existem depois de a sessão terminar |
-| Discutível | A avaliar | UserID e Charging Post ID | conhecidos no início, mas o modelo pode decorar IDs |
-| Redundante | Não usar | Order creation time e electricity_price | repetem a informação do Start Time e do tariff_period |
-| Alvo | Alvo | is_Abnormal | é o que queremos prever |
+| Start | Feature | location, start time, weather, tariff_period and station and user history | they are already known when the session starts |
+| After the end | EDA only | energy, costs, end time, payment and End cause | they only exist after the session ends |
+| Debatable | To be evaluated | UserID and Charging Post ID | known at the start, but the model may memorize IDs |
+| Redundant | Do not use | Order creation time and electricity_price | they repeat the information of Start Time and tariff_period |
+| Target | Target | is_Abnormal | it is what we want to predict |
 
-As variáveis do grupo "Depois do fim" são as mais importantes de deixar de fora. Se fossem usadas, o modelo estaria a "ver o futuro" e teria um desempenho artificialmente alto. Por isso ficam no dataset apenas para a análise exploratória (EDA, do inglês Exploratory Data Analysis).
+The variables of the "After the end" group are the most important to leave out. If they were used, the model would be "seeing the future" and would have an artificially high performance. That is why they stay in the dataset only for the exploratory analysis (EDA, from the English Exploratory Data Analysis).
 
-Já os IDs de usuário e de posto estão disponíveis no início, mas podem levar o modelo a decorar usuários e postos específicos. Também não ajudam em nada quando aparece um usuário ou posto novo, visto que não existe histórico na primeira vez. Como o enunciado pede, a decisão vai ser tomada comparando modelos com e sem essas colunas.
+As for the user and station IDs, they are available at the start, but they may lead the model to memorize specific users and stations. They also do not help at all when a new user or station appears, since there is no history the first time. As the assignment statement asks, the decision will be made by comparing models with and without these columns.
 
-O Order creation time ficou de fora porque em 56% das sessões é registado depois do Start Time (mediana de 55 s) e não traz nenhuma informação nova. Já o electricity_price tem só 3 valores e cada tariff_period tem sempre o mesmo preço, então sabendo o período já sabemos o preço. O contrário não acontece, porque o mesmo preço aparece em vários períodos, por isso ficamos com o tariff_period, que tem mais informação.
+Order creation time was left out because in 56% of the sessions it is recorded after the Start Time (median of 55 s) and it does not bring any new information. As for electricity_price, it has only 3 values and each tariff_period always has the same price, so knowing the period we already know the price. The opposite does not happen, because the same price appears in several periods, so we keep tariff_period, which has more information.
 
-Por fim, a categoria "?" do código serve de verificação: se alguma coluna caísse aí, significaria que nos esquecemos de a classificar. No nosso caso nenhuma coluna ficou por classificar.
+Finally, the "?" category of the code serves as a check: if any column fell there, it would mean that we forgot to classify it. In our case no column was left unclassified.
 
-### 1.3.4 Listas reutilizadas nas próximas etapas
+### 1.3.4 Lists reused in the next steps
 
-A partir da tabela, guardamos três listas que vão ser reutilizadas nas próximas etapas:
+From the table, we save three lists that will be reused in the next steps:
 
-- features_inicio: colunas candidatas a preditores;
-- colunas_depois: colunas que nunca entram no modelo, só na análise exploratória;
-- colunas_ids: identificadores para se testar com e sem sua presença, na fase de modelação.
+- features_inicio: candidate columns for predictors;
+- colunas_depois: columns that never enter the model, only the exploratory analysis;
+- colunas_ids: identifiers to be tested with and without their presence, in the modeling phase.
 
-Assim, a separação entre o que pode e o que não pode entrar no modelo fica definida num único local e não precisa ser repetida à mão depois.
+This way, the separation between what can and what cannot enter the model is defined in a single place and does not need to be repeated by hand later.
 
-A célula seguinte mostra, com um exemplo concreto, porque é que as colunas pós-sessão têm de ficar de fora.
+The next cell shows, with a concrete example, why the post-session columns have to stay out.
 
-### 1.3.5 Exemplo: 0 kWh "entrega" a resposta
+### 1.3.5 Example: 0 kWh "gives away" the answer
 
-Exemplo de problema nos dados: das 54621 sessões com 0 kWh carregados, 83,4% são anormais. Nas sessões que contem energia carregada (> 0 kWh), só 9,4% são anormais.
+Example of a problem in the data: of the 54621 sessions with 0 kWh charged, 83,4% are abnormal. In the sessions that contain charged energy (> 0 kWh), only 9,4% are abnormal.
 
-Faz sentido se pensarmos que a sessão que falha logo no início, não chega a carregar energia. Mas a quantidade de energia só é conhecida depois de uma sessão terminar. Se esta coluna entrasse no modelo, ele aprenderia a regra "0 kWh → anormal" e teria ótimos resultados no teste, mas seria inútil na prática, porque no momento da previsão esse valor ainda não existe, estariamos apenas jogando lixo para dentro de nossos dados.
+It makes sense if we think that the session that fails right at the start does not get to charge energy. But the amount of energy is only known after a session ends. If this column entered the model, it would learn the rule "0 kWh → abnormal" and would have great results in the test, but it would be useless in practice, because at the moment of the prediction that value does not exist yet, we would just be throwing garbage into our data.
 
-Isto confirma, com evidência, e justifica a decisão de excluir dos preditores todas as colunas classificadas como "Depois do fim".
+This confirms, with evidence, and justifies the decision to exclude from the predictors all the columns classified as "After the end".
 
-Já as sessões com 0 kWh, que na secção 1.2.4 tinham sido mantidas por enquanto, continuam no dataset. Elas não são erros, mas sim sessões reais que falharam antes de carregar energia, e cerca de 45,5 mil delas são anormais, o que representa mais da metade de todas as anomalias do dataset (cerca de 82 mil). Se removêssemos essas linhas, estaríamos apagando justamente a maior parte dos casos que o modelo precisa aprender a prever. O problema estava apenas na coluna de energia, que denuncia a resposta, e como ela já foi excluída dos preditores, as linhas podem ficar sem trazer nenhuma fuga de informação.
+As for the sessions with 0 kWh, which in section 1.2.4 had been kept for now, they remain in the dataset. They are not errors, but rather real sessions that failed before charging energy, and about 45,5 thousand of them are abnormal, which represents more than half of all the anomalies in the dataset (about 82 thousand). If we removed these rows, we would be erasing precisely most of the cases that the model needs to learn to predict. The problem was only in the energy column, which gives away the answer, and since it has already been excluded from the predictors, the rows can stay without bringing any information leakage.
 
 ---
 
-## 1.4 Relação das variáveis com o alvo
+## 1.4 Relationship of the variables with the target
 
-### 1.4.1 Histórico do posto (heatmap 1)
+### 1.4.1 Station history (heatmap 1)
 
-- Forte com o alvo: as taxas de anomalia do posto: rate_1D 0,45, rate_7D 0,43, abnormal_1D 0,37, rate_30D 0,37.
-- Fraco ou nulo: número de sessões (7D 0,07, 30D 0,01) e horas desde a última sessão (0,01).
-- Negativo: hours_since_previous_completed_abnormal −0,12. Quanto mais tempo desde a última falha, menor o risco.
-- Redundâncias: sessions_7D × 30D 0,90; abnormal_1D × rate_1D 0,85; rate_7D × rate_30D 0,82.
+- Strong with the target: the station's anomaly rates: rate_1D 0,45, rate_7D 0,43, abnormal_1D 0,37, rate_30D 0,37.
+- Weak or null: number of sessions (7D 0,07, 30D 0,01) and hours since the last session (0,01).
+- Negative: hours_since_previous_completed_abnormal −0,12. The more time since the last failure, the lower the risk.
+- Redundancies: sessions_7D × 30D 0,90; abnormal_1D × rate_1D 0,85; rate_7D × rate_30D 0,82.
 
-Do heatmap 1 conseguimos tirar a informação de que, umm posto que falhou recentemente, tende a falhar de novo. A taxa de anomalias do posto no último dia (rate_1d) é a variável que mais se correlaciona com o alvo (0,45), seguida da taxa de anomalias do posto na ultima semana (rate_7D) (0,43). 
+From heatmap 1 we can take the information that a station that failed recently tends to fail again. The station's anomaly rate on the last day (rate_1d) is the variable that most correlates with the target (0,45), followed by the station's anomaly rate in the last week (rate_7D) (0,43).
 
-Sendo que é visivel que essa correlação cai a medida que a janela de tempo aumenta. Sendo assim o histórico mais recente é o que melhor informa e prediz uma proxima falha no posto. Sendo o inverso tambem informativo, onde quanto mais tempo passa desde a ultima falha, menor o risco (hours_since_previous_completed_abnormalcom uma taxa de −0,12). 
+With it being visible that this correlation drops as the time window increases. Thus the most recent history is what best informs and predicts a next failure at the station. The inverse also being informative, where the more time passes since the last failure, the lower the risk (hours_since_previous_completed_abnormal with a rate of −0,12).
 
-### 1.4.2 Histórico do usuário (heatmap 2)
+### 1.4.2 User history (heatmap 2)
 
-- Forte com o alvo: só as taxas: rate_30D 0,30, rate_180D e rate_730D 0,28.
-- Nulo: contagens de sessões e de falhas (≈ −0,02 a 0,01) e is_new_user 0,02.
-- Redundância extrema:
+- Strong with the target: only the rates: rate_30D 0,30, rate_180D and rate_730D 0,28.
+- Null: counts of sessions and of failures (≈ −0,02 to 0,01) and is_new_user 0,02.
+- Extreme redundancy:
   - abnormal_730D × sessions_730D 1,00;
   - abnormal_180D × sessions_180D 0,99;
   - is_new_user × user_no_previous_completed_session 0,99;
   - rate_180D × rate_730D 0,97.
 
-Do heatmap 2 vemos que, assim como no posto, o que se relaciona com a falha é a taxa de anomalias do usuário, e não a quantidade de sessões ou de falhas. A taxa dos últimos 30 dias (rate_30D) é a mais forte (0,30), seguida das taxas de 180 e 730 dias (0,28). Já as contagens ficam praticamente em zero, ou seja, um usuário que carrega muito não falha necessariamente mais. Mesmo assim, o histórico do usuário informa menos que o do posto (0,30 contra 0,45).
+From heatmap 2 we see that, just as with the station, what relates to the failure is the user's anomaly rate, and not the number of sessions or of failures. The rate of the last 30 days (rate_30D) is the strongest (0,30), followed by the 180 and 730 day rates (0,28). As for the counts, they stay practically at zero, that is, a user who charges a lot does not necessarily fail more. Even so, the user history informs less than the station's (0,30 against 0,45).
 
-Tambem é visivel que muitas colunas são praticamente duplicadas, como abnormal_730D e sessions_730D (1,00) e is_new_user e user_no_previous_completed_session (0,99), então não faz sentido manter todas no modelo. Essa correlação de 1,00 entre falhas e sessões é estranha, e provavelmente acontece porque algumas contas com milhares de sessões dominam o cálculo de Pearson (Na próxima etapa iremos verificar melhor o que pode estar acontecendo).
+It is also visible that many columns are practically duplicated, such as abnormal_730D and sessions_730D (1,00) and is_new_user and user_no_previous_completed_session (0,99), so it does not make sense to keep all of them in the model. This correlation of 1,00 between failures and sessions is strange, and probably happens because some accounts with thousands of sessions dominate the Pearson calculation (In the next step we will check better what may be happening).
 
-### 1.4.3 Contexto da sessão — clima, preço e sessões ativas do usuário no momento (heatmap 3)
+### 1.4.3 Session context — weather, price and the user's active sessions at the moment (heatmap 3)
 
-- Tudo ≈ 0 (temperatura 0,03; os demais entre −0,01 e 0,01).
+- Everything ≈ 0 (temperature 0,03; the others between −0,01 and 0,01).
 
-Do heatmap 3 vemos que todas as variáveis de contexto ficaram perto de zero, sendo a temperatura a maior com apenas 0,03. Sendo assim, sozinhos, o clima, o preço e o número de sessões ativas do usuário não explicam a anomalia. Mas como Pearson só mede relação linear, essas variáveis ainda podem ajudar o modelo quando , quem sabe, combinadas com outras variáveis.
+From heatmap 3 we see that all the context variables were close to zero, temperature being the largest with only 0,03. Thus, alone, the weather, the price and the user's number of active sessions do not explain the anomaly. But since Pearson only measures linear relationship, these variables may still help the model when , who knows, combined with other variables.
 
-### 1.4.4 Correlação de Pearson da localização e do período tarifário com is_Abnormal
+### 1.4.4 Pearson correlation of the location and of the tariff period with is_Abnormal
 
-#### 1.4.4a Localização (heatmap 4a)
+#### 1.4.4a Location (heatmap 4a)
 
-- Maior risco: Expressway C (0,11), Shopping Mall (0,07), Expressway A (0,07), Wholesale Market (0,06).
-- Menor risco: Park B (−0,10), Bus Station (−0,09), Technology Park (−0,06).
-- Taxa real: vai de 7,9% (Industrial Park) a 32,4% (Expressway A).
+- Highest risk: Expressway C (0,11), Shopping Mall (0,07), Expressway A (0,07), Wholesale Market (0,06).
+- Lowest risk: Park B (−0,10), Bus Station (−0,09), Technology Park (−0,06).
+- Real rate: goes from 7,9% (Industrial Park) to 32,4% (Expressway A).
 
-Do heatmap 4a conseguimos ver que a localização do posto importa. As áreas de serviço das vias expressas (Expressway C com 0,11 e Expressway A com 0,07) e o do Shopping Mall (0,07) são as que mais se relacionam com falhas, enquanto Park B (−0,10) e Bus Station (−0,09) têm menos risco. Os valores de correlação parecem baixos porque cada localização é só uma pequena parte das sessões, mas olhando a taxa real fica mais claro: vai de 7,9% no Industrial Park até 32,4% na Expressway A, ou seja, as áreas da autoestrada têm cerca de 4× mais falhas que os parques. Não da para saber o porque disso ocorrer, mas é de fato interessante ter uma correlação como essas presente.
+From heatmap 4a we can see that the location of the station matters. The service areas of the expressways (Expressway C with 0,11 and Expressway A with 0,07) and that of the Shopping Mall (0,07) are the ones that most relate to failures, while Park B (−0,10) and Bus Station (−0,09) have less risk. The correlation values seem low because each location is only a small part of the sessions, but looking at the real rate it becomes clearer: it goes from 7,9% in the Industrial Park up to 32,4% in Expressway A, that is, the motorway areas have about 4× more failures than the parks. It is not possible to know why this occurs, but it is indeed interesting to have a correlation like this present.
 
-#### 1.4.4b Período tarifário (heatmap 4b)
+#### 1.4.4b Tariff period (heatmap 4b)
 
-- Tudo proximo de 0 (entre −0,016 e 0,02). A taxa só varia entre 16,7% e 20,5%.
+- Everything close to 0 (between −0,016 and 0,02). The rate only varies between 16,7% and 20,5%.
 
-Do heatmap 4b vemos que o período tarifário quase não influencia na falha, já que todas as correlações ficam perto de zero (entre −0,016 e 0,02) e a taxa de anomalia só varia entre 16,7% e 20,5%. É uma variável fraca, mas pode ser mantida no modelo, já que pode ajudar junto com outras variáveis.
+From heatmap 4b we see that the tariff period hardly influences the failure, since all the correlations stay close to zero (between −0,016 and 0,02) and the anomaly rate only varies between 16,7% and 20,5%. It is a weak variable, but it can be kept in the model, since it may help together with other variables.
 
-### 1.4.5 Eliminação de variáveis redundantes
+### 1.4.5 Elimination of redundant variables
 
-Seguindo os critérios discutidos com a professora, agora eliminamos as variáveis muito correlacionadas entre si. Quando duas variáveis têm uma correlação de Pearson maior que 0,9 entre elas, ficamos com a que tem maior correlação com o alvo (is_Abnormal) e eliminamos a outra. A justificativa é que, se duas variáveis trazem praticamente a mesma informação, manter as duas não acrescenta nada ao modelo e só torna as próximas análises mais pesadas, tanto quantitativamente quanto visualmente para nós usuários.
+Following the criteria discussed with the professor, we now eliminate the variables highly correlated with each other. When two variables have a Pearson correlation greater than 0,9 between them, we keep the one that has the higher correlation with the target (is_Abnormal) and eliminate the other. The justification is that, if two variables bring practically the same information, keeping both adds nothing to the model and only makes the next analyses heavier, both quantitatively and visually for us users.
 
-A correlação com o alvo é comparada em valor absoluto, porque o que interessa é a força da relação e não o sinal (algumas contagens têm correlação negativa com o alvo).
+The correlation with the target is compared in absolute value, because what matters is the strength of the relationship and not the sign (some counts have negative correlation with the target).
 
-Os heatmaps arredondam para 2 casas decimais, o que não chega para decidir os casos no limite. Por isso os valores abaixo foram calculados com 4 casas, a partir das mesmas matrizes dos heatmaps.
+The heatmaps round to 2 decimal places, which is not enough to decide the borderline cases. That is why the values below were calculated with 4 places, from the same matrices as the heatmaps.
 
 #### Heatmap 1
 
-Nenhum par passa de 0,9. O mais alto é sessions_7D × sessions_30D, que aparece como 0,90 no heatmap e vale 0,8987. Mesmo não chegando a 0,9, decidimos eliminar uma delas, porque o valor está tão perto do limite que, na prática, as duas trazem a mesma informação. Aplicando o mesmo critério, fica sessions_7D, que tem maior correlação com o alvo (0,0678 contra 0,0143), e sai post_previous_sessions_30D.
+No pair goes above 0,9. The highest is sessions_7D × sessions_30D, which appears as 0,90 in the heatmap and is worth 0,8987. Even though it does not reach 0,9, we decided to eliminate one of them, because the value is so close to the limit that, in practice, both bring the same information. Applying the same criterion, sessions_7D stays, which has a higher correlation with the target (0,0678 against 0,0143), and post_previous_sessions_30D leaves.
 
-Os outros pares altos ficam claramente abaixo do limite (abnormal_1D × rate_1D 0,85; rate_7D × rate_30D 0,82), por isso as restantes variáveis do posto são mantidas.
+The other high pairs are clearly below the limit (abnormal_1D × rate_1D 0,85; rate_7D × rate_30D 0,82), so the remaining station variables are kept.
 
 #### Heatmap 2
 
-Aqui existem cinco pares acima de 0,9:
+Here there are five pairs above 0,9:
 
-| Par | Correlação entre elas | Correlação de cada uma com o alvo | Fica | Sai |
+| Pair | Correlation between them | Correlation of each one with the target | Stays | Leaves |
 |---|---|---|---|---|
 | sessions_730D × abnormal_730D | 0,9974 | −0,0206 / −0,0124 | sessions_730D | abnormal_730D |
 | is_new_user × user_no_previous_completed_session | 0,9946 | 0,0195 / 0,0206 | user_no_previous_completed_session | is_new_user |
@@ -293,259 +293,259 @@ Aqui existem cinco pares acima de 0,9:
 | rate_180D × rate_730D | 0,9710 | 0,2821 / 0,2796 | rate_180D | rate_730D |
 | sessions_30D × abnormal_30D | 0,9455 | −0,0201 / 0,0148 | sessions_30D | abnormal_30D |
 
-O par sessions_30D × abnormal_30D (0,95 no heatmap) faltava na nossa primeira lista. Já rate_180D e rate_730D pareciam empatadas (0,28 com o alvo), mas com 4 casas a de 180 dias fica ligeiramente à frente (0,2821 contra 0,2796).
+The pair sessions_30D × abnormal_30D (0,95 in the heatmap) was missing from our first list. As for rate_180D and rate_730D, they seemed tied (0,28 with the target), but with 4 places the 180-day one is slightly ahead (0,2821 against 0,2796).
 
-Em quatro dos cinco pares as duas variáveis têm correlação quase nula com o alvo (abaixo de 0,03 em valor absoluto), então a escolha de qual fica pouco muda. Mesmo assim seguimos o critério à risca.
+In four of the five pairs both variables have almost null correlation with the target (below 0,03 in absolute value), so the choice of which one stays changes little. Even so we followed the criterion to the letter.
 
-Do histórico do usuário saem 5 variáveis: user_previous_abnormal_730D, user_previous_abnormal_180D, user_previous_abnormal_30D, user_previous_abnormal_rate_730D e is_new_user.
+From the user history 5 variables leave: user_previous_abnormal_730D, user_previous_abnormal_180D, user_previous_abnormal_30D, user_previous_abnormal_rate_730D and is_new_user.
 
 #### Heatmap 3
 
-O par com maior correlação tem só 0,35 e, logo, todas as variáveis de contexto são mantidas.
+The pair with the highest correlation has only 0,35 and, therefore, all the context variables are kept.
 
-#### Resumo
+#### Summary
 
-No total saem 6 variáveis: 1 do histórico do posto (post_previous_sessions_30D) e 5 do histórico do usuário (user_previous_abnormal_730D, user_previous_abnormal_180D, user_previous_abnormal_30D, user_previous_abnormal_rate_730D e is_new_user).
+In total 6 variables leave: 1 from the station history (post_previous_sessions_30D) and 5 from the user history (user_previous_abnormal_730D, user_previous_abnormal_180D, user_previous_abnormal_30D, user_previous_abnormal_rate_730D and is_new_user).
 
 
-### 1.4.6 Outliers contra o is_Abnormal
+### 1.4.6 Outliers against is_Abnormal
 
-Na secção 1.2.5 decidimos manter os outliers das variáveis preditoras, e aqui fomos verificar se eles realmente carregam informação sobre o alvo. Para isso, em cada variável separamos as sessões que ficam acima do limite do IQR (Q3 + 1,5 × IQR) e comparamos a taxa de anomalia delas com a do resto das sessões.
+In section 1.2.5 we decided to keep the outliers of the predictor variables, and here we went to check whether they really carry information about the target. For this, in each variable we separated the sessions that are above the IQR limit (Q3 + 1,5 × IQR) and compared their anomaly rate with that of the rest of the sessions.
 
-No histórico do posto a diferença é muito grande. Nas sessões em que o posto teve uma taxa de anomalias no dia anterior (post_previous_abnormal_rate_1D) fora do normal, 75% são anormais, contra apenas 14,7% no resto. O mesmo acontece com o número de falhas do posto na última semana (post_previous_abnormal_7D), com 55,3% contra 14,8%, e nos últimos 30 dias (post_previous_abnormal_30D), com 45,7% contra 15,7%. Sendo assim, os outliers do posto não são erros, mas sim os casos que parecem mais informar sobre uma próxima falha, ou seja, se removêssemos ou limitássemos esses valores estaríamos apagando justamente a informação mais preditiva que temos. Quando um posto começa a falhar, obviamente as sessão naquele dia vão sofrer com mais anomalias de carregamento.
+In the station history the difference is very large. In the sessions in which the station had an out-of-the-ordinary anomaly rate on the previous day (post_previous_abnormal_rate_1D), 75% are abnormal, against only 14,7% in the rest. The same happens with the station's number of failures in the last week (post_previous_abnormal_7D), with 55,3% against 14,8%, and in the last 30 days (post_previous_abnormal_30D), with 45,7% against 15,7%. Thus, the station outliers are not errors, but rather the cases that seem to most inform about a next failure, that is, if we removed or capped these values we would be erasing precisely the most predictive information we have. When a station starts to fail, obviously the sessions on that day will suffer from more charging anomalies.
 
-No histórico do usuário o padrão se repete nas taxas de anomalia. Os outliers das taxas de 30, 180 e 730 dias têm entre 45,6% e 46,9% de sessões anormais, contra cerca de 16% no resto. Ou seja, a taxa de falhas do usuário também tem sinal, embora mais fraco que a do posto (cerca de 46% contra 75%).
+In the user history the pattern repeats in the anomaly rates. The outliers of the 30, 180 and 730 day rates have between 45,6% and 46,9% of abnormal sessions, against about 16% in the rest. That is, the user's failure rate also has signal, although weaker than the station's (about 46% against 75%).
 
-Já no número de sessões do usuário em 730 dias (user_previous_sessions_730D) acontece o contrário, onde os outliers têm até um pouco menos de anomalia (15,4% contra 19%). Esses outliers são as contas com milhares de sessões que vimos na secção 1.2.5.3, que provavelmente pertencem a frotas, e a taxa de anomalia delas é parecida com a do resto, então não carregam nenhum sinal especial. Mesmo assim, são sessões reais e por isso também ficam no dataset.
+As for the user's number of sessions in 730 days (user_previous_sessions_730D) the opposite happens, where the outliers have even a bit less anomaly (15,4% against 19%). These outliers are the accounts with thousands of sessions that we saw in section 1.2.5.3, which probably belong to fleets, and their anomaly rate is similar to that of the rest, so they do not carry any special signal. Even so, they are real sessions and that is why they also stay in the dataset.
 
-Com isso confirmamos a decisão da secção 1.2.5 de não remover nem limitar os outliers, já que nas variáveis de falhas eles são exatamente o sinal que queremos que o modelo aprenda.
+With this we confirm the decision of section 1.2.5 not to remove or cap the outliers, since in the failure variables they are exactly the signal that we want the model to learn.
 
 
 ---
 
-## 1.5 Estabilidade temporal
+## 1.5 Temporal stability
 
-Nesta secção a ideia principal era verificar se os dados se mantêm estáveis ao longo do tempo ou se o comportamento das sessões muda de um período para o outro, já que, se os dados mudarem muito, um modelo treinado num período pode não funcionar tão bem noutro. Os dados cobrem exatamente 25 meses e vão de 31/12/2019 a 31/12/2021, sendo que dezembro de 2019 tem só 17 sessões, visto que os registos começam às 21h do último dia do mês, por isso não o consideramos como um mês nas análises mensais.
+In this section the main idea was to check whether the data remain stable over time or whether the behavior of the sessions changes from one period to another, since, if the data change a lot, a model trained in one period may not work as well in another. The data cover exactly 25 months and go from 31/12/2019 to 31/12/2021, with December 2019 having only 17 sessions, since the records start at 21h on the last day of the month, so we do not consider it as a month in the monthly analyses.
 
-A primeira coisa que conseguimos ver é que o volume de sessões cresce bastante, passando de cerca de 6 mil para cerca de 27 mil sessões por mês, e 2021 acaba por ter mais dados que 2020 (255 mil contra 186 mil sessões). A exceção é fevereiro, que cai nos dois anos (as 2 grandes quedas que acontecem no primeiro gráfico "Número de sessões por mes"), chegando a só 1 391 sessões em fev/2020, o que pode estar possivelmente ligado ao Ano Novo Chinês e, em 2020, ao início da COVID, mas os dados não nos permitem confirmar isso. Junto com o volume cresce também a base de usuários, que vai de cerca de 2 mil (2020-01) para cerca de 7,5 mil (2021-10) usuários ativos por mês, lembrando que 43% dos usuários têm uma única sessão em todo o dataset. Já o número de postos fica estável em 91–92 durante quase todo o período e só cai para 86–88 no fim de 2021, porque 4 postos (17, 18, 19 e 20) param de ter sessões em 28/09/2021 e outros param em dezembro. Não dá para saber se foram desativados ou se entraram em manutenção, mas isso explica a queda.
+The first thing we can see is that the volume of sessions grows a lot, going from about 6 thousand to about 27 thousand sessions per month, and 2021 ends up having more data than 2020 (255 thousand against 186 thousand sessions). The exception is February, which drops in both years (the 2 big drops that happen in the first chart "Number of sessions per month"), reaching only 1 391 sessions in Feb/2020, which may possibly be linked to the Chinese New Year and, in 2020, to the start of COVID, but the data do not allow us to confirm this. Along with the volume the user base also grows, going from about 2 thousand (2020-01) to about 7,5 thousand (2021-10) active users per month, keeping in mind that 43% of the users have a single session in the whole dataset. As for the number of stations, it stays stable at 91–92 during almost the whole period and only drops to 86–88 at the end of 2021, because 4 stations (17, 18, 19 and 20) stop having sessions on 28/09/2021 and others stop in December. It is not possible to know whether they were deactivated or went into maintenance, but this explains the drop.
 
-A taxa de anomalia também não é constante. Ela começa em cerca de 25%, cai para 16–17% no fim de 2020, chega ao mínimo de 13,7% em mar/2021 e volta a subir para cerca de 23% em set/2021. Curiosamente, olhando por ano a taxa quase não muda (18,7% em 2020 e 18,5% em 2021), ou seja, a variação só aparece quando olhamos mês a mês. As variáveis de histórico acompanham essa mudança da forma que esperávamos: a média mensal da taxa de falhas do posto em 7 dias vai de cerca de 0,23 para 0,15 e volta para 0,22, e a do usuário em 30 dias faz o mesmo, porém de forma mais suave (entre 0,17 e 0,25), o que bate com o que vimos na secção 1.4, onde o histórico do usuário informa menos que o do posto.
+The anomaly rate is also not constant. It starts at about 25%, drops to 16–17% at the end of 2020, reaches the minimum of 13,7% in Mar/2021 and goes back up to about 23% in Sep/2021. Curiously, looking by year the rate hardly changes (18,7% in 2020 and 18,5% in 2021), that is, the variation only appears when we look month by month. The history variables follow this change in the way we expected: the monthly mean of the station's 7-day failure rate goes from about 0,23 to 0,15 and back to 0,22, and the user's 30-day one does the same, but in a smoother way (between 0,17 and 0,25), which matches what we saw in section 1.4, where the user history informs less than the station's.
 
-Já a percentagem de novos usuários é muito alta no início (94% em dez/2019 e 31% em jan/2020), o que faz sentido, visto que no começo dos registos quase todos os usuários aparecem pela primeira vez, e depois estabiliza em 10–15% por mês. Esses novos usuários têm um pouco mais de anomalia que os restantes (20,6% contra 18,3%). Ou seja, os primeiros meses são um "início frio", onde o histórico dos usuários e dos postos ainda está sendo construído e as variáveis de histórico têm pouca informação. A média de sessões anteriores do usuário em 730 dias cresce de forma natural, já que a janela vai acumulando sessões, mas tem um pico estranho em jun/2020 (626) seguido de uma queda em ago/2020 (132). Como a média é calculada sobre as sessões de cada mês, isso provavelmente acontece nos meses em que as contas grandes (os usuários 39 e 23, que somam cerca de 21 mil sessões, ou seja ≈5% do total) carregam muito e puxam a média para cima. São essas mesmas contas que explicam a correlação de 1,00 entre user_previous_sessions_730D e user_previous_abnormal_730D no heatmap 2. Por fim, a temperatura segue o ciclo normal das estações, com cerca de 6 °C no inverno e 30 °C no verão, e a anomalia sobe um pouco nos verões (ago/2020 e set/2021), mas como vimos na secção 1.4.3 a correlação linear com o alvo é fraca (0,03), então existe uma sazonalidade, mas sozinha ela não explica a anomalia.
+As for the percentage of new users, it is very high at the start (94% in Dec/2019 and 31% in Jan/2020), which makes sense, since at the beginning of the records almost all users appear for the first time, and then it stabilizes at 10–15% per month. These new users have a bit more anomaly than the rest (20,6% against 18,3%). That is, the first months are a "cold start", where the history of the users and of the stations is still being built and the history variables have little information. The mean of the user's previous sessions in 730 days grows naturally, since the window keeps accumulating sessions, but it has a strange peak in Jun/2020 (626) followed by a drop in Aug/2020 (132). Since the mean is calculated over the sessions of each month, this probably happens in the months in which the large accounts (users 39 and 23, which add up to about 21 thousand sessions, that is ≈5% of the total) charge a lot and pull the mean up. It is these same accounts that explain the correlation of 1,00 between user_previous_sessions_730D and user_previous_abnormal_730D in heatmap 2. Finally, the temperature follows the normal cycle of the seasons, with about 6 °C in winter and 30 °C in summer, and the anomaly rises a bit in the summers (Aug/2020 and Sep/2021), but as we saw in section 1.4.3 the linear correlation with the target is weak (0,03), so there is a seasonality, but alone it does not explain the anomaly.
 
-De forma geral, o volume de sessões, a taxa de anomalia mensal e a base de usuários mudam ao longo do tempo, ou seja, os dados não parecem ser estáveis, e isso traz algumas consequências para a modelação. A divisão entre treino e teste tem de ser temporal, treinando com o passado e testando com os meses finais, já que se fizéssemos uma divisão aleatória estaríamos misturando sessões do futuro no treino e o resultado seria otimista demais. Como a taxa de anomalia do período de teste pode ser diferente da do treino, também não vamos avaliar o modelo só pela acurácia, mas por métricas como F1, PR-AUC e o recall da classe anormal. Temos ainda de ter atenção ao início frio, podendo descartar jan–fev/2020 do treino ou, pelo menos, citar isso como uma limitação, e às contas grandes, que podem dominar o aprendizado do modelo, por isso a ideia é verificar o erro com e sem elas. Por fim, como alguns postos param no fim de 2021, o período de teste vai ter menos postos que o de treino, o que também é uma limitação a citar.
+In general, the volume of sessions, the monthly anomaly rate and the user base change over time, that is, the data do not seem to be stable, and this brings some consequences for the modeling. The split between training and test has to be temporal, training with the past and testing with the final months, since if we made a random split we would be mixing sessions from the future into the training and the result would be too optimistic. Since the anomaly rate of the test period may be different from that of the training, we will also not evaluate the model only by accuracy, but by metrics such as F1, PR-AUC and the recall of the abnormal class. We still have to pay attention to the cold start, possibly discarding Jan–Feb/2020 from the training or, at least, citing this as a limitation, and to the large accounts, which may dominate the learning of the model, so the idea is to check the error with and without them. Finally, since some stations stop at the end of 2021, the test period will have fewer stations than the training one, which is also a limitation to cite.
 
 
-### 1.5.1 Decisões para a Task 2
+### 1.5.1 Decisions for Task 2
 
-- **Início frio:** as sessões de dez/2019 e jan/2020 vão ser retiradas do treino. Nesses meses o histórico dos usuários e dos postos ainda está sendo construído (94% e 31% de usuários novos, contra 10–15% nos outros meses), então as variáveis de histórico têm pouca informação. São cerca de 6 200 sessões (~1,4% do total) das mais de 400mil que temos no total.
-- **Fevereiro:** a queda de sessões em fev/2020 não será removida. A mesma queda acontece em fev/2021, então parece ser um evento que se repete todo ano, muito mais provavelmente ligado ao Ano Novo Chinês do que à COVID como antes idealizado. Além disso, a taxa de anomalia desse mês (26,3%) é parecida com a de janeiro (25,0%) e março (24,8%).
-- O corte é feito só no treino, na Task 2. O CSV exportado no notebook manterá todas as sessões não modificadas.
-
----
-
-# Task 2 — Definição do problema de previsão e da avaliação
-
-## 2.1 Definição do problema
-
-Quanto à unidade de observação, cada linha do dataset é uma sessão de carregamento, ou seja, o modelo faz uma previsão por sessão e temos 441 077 sessões no total. Quanto às classes, a classe positiva é a sessão anormal (is_Abnormal = 1) e a negativa é a sessão normal (is_Abnormal = 0). São 81934 sessões anormais (18,6%) contra 359143 normais (81,4%).
-
-Sobre como o alvo sai do End cause, como foi escolhido na Task 1, decidimos por interpretar as sessões que terminaram com "Charging ends normally" ou "User stops charging" como sendo sessões normais e as que terminaram com qualquer um dos outros 13 motivos, todos falhas (do posto, da comunicação com o veículo, do BMS, etc), são as consideradas sessões anormais.
-
-O momento da previsão é o início da sessão (Start Time). Só pode ser usado o que já se sabe naquele momento, ou seja, variáveis que não sabemos no momento do inicio, não serão consideradas nesse ponto. A previsão serve para monitoramento automático e priorização da manutenção dos postos. Prever uma sessão como anormal significa que a sessão tem risco alto de terminar com falha, então o sistema gera um alerta para o operador acompanhar a sessão e o posto sobe na fila de inspeção. O alerta não bloqueia a sessão nem avisa o usuário, funciona apenas como um alerta ao usuário do carro para que este fique atento.
-
-Consideramos o "User stops charging" como normal porque foi o próprio usuário que decidiu parar, e não uma falha técnica. Mas isso acaba por ser uma limitação do proprio dataset e como a informação ali existe, visto que alguns usuários podem ter parado justamente porque algo estava errado (um carregamento lento, por exemplo), e os dados não nos permitem separar esses casos para uma previsão mais precisa. Infelizmente esse é um problema que não há como contornar. 
+- **Cold start:** the sessions of Dec/2019 and Jan/2020 will be removed from the training. In these months the history of the users and of the stations is still being built (94% and 31% of new users, against 10–15% in the other months), so the history variables have little information. They are about 6 200 sessions (~1,4% of the total) out of the more than 400 thousand that we have in total.
+- **February:** the drop in sessions in Feb/2020 will not be removed. The same drop happens in Feb/2021, so it seems to be an event that repeats every year, much more likely linked to the Chinese New Year than to COVID as previously thought. In addition, the anomaly rate of that month (26,3%) is similar to that of January (25,0%) and March (24,8%).
+- The cut is made only in the training, in Task 2. The CSV exported in the notebook will keep all the sessions unmodified.
 
 ---
 
-## 2.2 Variáveis disponíveis no momento da previsão
+# Task 2 — Definition of the prediction problem and of the evaluation
 
-Para cada uma das 47 colunas do dataset original fizemos a mesma pergunta da Task 1: "este valor já é conhecido quando a sessão é iniciada?".
+## 2.1 Problem definition
 
-| Categoria | Colunas | Porquê |
+As for the unit of observation, each row of the dataset is a charging session, that is, the model makes one prediction per session and we have 441 077 sessions in total. As for the classes, the positive class is the abnormal session (is_Abnormal = 1) and the negative is the normal session (is_Abnormal = 0). There are 81934 abnormal sessions (18,6%) against 359143 normal ones (81,4%).
+
+About how the target comes out of End cause, as was chosen in Task 1, we decided to interpret the sessions that ended with "Charging ends normally" or "User stops charging" as being normal sessions and the ones that ended with any of the other 13 reasons, all failures (of the station, of the communication with the vehicle, of the BMS, etc), are the ones considered abnormal sessions.
+
+The moment of the prediction is the start of the session (Start Time). Only what is already known at that moment can be used, that is, variables that we do not know at the moment of the start will not be considered at that point. The prediction serves for automatic monitoring and prioritization of the maintenance of the stations. Predicting a session as abnormal means that the session has a high risk of ending with a failure, so the system generates an alert for the operator to follow the session and the station moves up in the inspection queue. The alert does not block the session nor warn the user, it works only as an alert to the user of the car so that they stay attentive.
+
+We consider "User stops charging" as normal because it was the user themselves who decided to stop, and not a technical failure. But this ends up being a limitation of the dataset itself and as the information there exists, since some users may have stopped precisely because something was wrong (a slow charge, for example), and the data do not allow us to separate these cases for a more precise prediction. Unfortunately this is a problem that there is no way to get around.
+
+---
+
+## 2.2 Variables available at the moment of the prediction
+
+For each of the 47 columns of the original dataset we asked the same question as in Task 1: "is this value already known when the session is started?".
+
+| Category | Columns | Why |
 |---|---|---|
-| 1. Preditoras (29) | Location Information, District Name, Start Time, clima (3), tariff_period, histórico do posto (12), histórico do usuário (9) e user_active_sessions_at_start | já são conhecidas quando a sessão começa |
-| 2. Só para o alvo (1) | End cause | é de onde sai o is_Abnormal |
-| 3. Geradas durante ou depois da sessão (7) | Transaction power/kwh, Electricity cost, Service charge, Transaction Amount, Actual Payment, End Time e Payment time | só existem depois de a sessão terminar |
-| 4. Outro motivo (10) | Order creation time e electricity_price | repetem a informação do Start Time e do tariff_period |
-| | post_previous_sessions_30D, user_previous_abnormal_730D, user_previous_abnormal_180D, user_previous_abnormal_30D, user_previous_abnormal_rate_730D e is_new_user | correlação acima de 0,9 com outra variável |
-| | UserID e Charging Post ID | o modelo pode decorar IDs |
+| 1. Predictors (29) | Location Information, District Name, Start Time, weather (3), tariff_period, station history (12), user history (9) and user_active_sessions_at_start | they are already known when the session starts |
+| 2. Only for the target (1) | End cause | it is where is_Abnormal comes from |
+| 3. Generated during or after the session (7) | Transaction power/kwh, Electricity cost, Service charge, Transaction Amount, Actual Payment, End Time and Payment time | they only exist after the session ends |
+| 4. Other reason (10) | Order creation time and electricity_price | they repeat the information of Start Time and tariff_period |
+| | post_previous_sessions_30D, user_previous_abnormal_730D, user_previous_abnormal_180D, user_previous_abnormal_30D, user_previous_abnormal_rate_730D and is_new_user | correlation above 0,9 with another variable |
+| | UserID and Charging Post ID | the model may memorize IDs |
 
-O Start Time entra como preditora, mas não como data, e sim para tirar a hora e o dia da semana. O End cause é praticamente a própria resposta e só é conhecido no fim da sessão, então nunca poderia ser preditor.
-
----
-
-## 2.3 Consequências dos erros
-
-Um falso positivo (FP) é um alerta numa sessão que seria normal. O custo é baixo (um usuário fica de olho numa sessão sem necessidade ou um técnico verifica um posto que estava bom), mas se acontecer demais os operadores passam a ignorar os alertas. Já um falso negativo (FN) é uma sessão anormal sem alerta. O usuário fica sem carregar e o posto com problema continua a ser usado sem ninguém saber.
-
-Para o uso escolhido, o FN é o erro mais importante. Como vimos durante a Task 1, um posto que falhou recentemente tende a falhar novamente (a taxa de falhas do posto no último dia é a variável mais correlacionada com o alvo, 0,45), ou seja, deixar passar uma falha acaba por afetar também os próximos usuários daquele posto além da não manutenção necessária do mesmo. Mesmo assim o FP não deve ser ignorado: em cada 1 000 sessões existem  cerca de 186 sessões que são anormais, e um modelo que desse alerta em todas apanharia as 186 mas geraria cerca de 814 alertas falsos. Logo, a avaliação deve dar mais peso ao recall sem deixar a precision cair demais.
-
-Também consideramos a intervenção no usuário (avisar para trocar de posto), mas aí os falsos positivos passariam a ser o erro mais caro, já que cada alerta falso poderia encomodar um cliente real. Por isso fica apenas como uma possível extensão para alertas com probabilidade muito alta.
+Start Time enters as a predictor, but not as a date, but rather to extract the hour and the day of the week. End cause is practically the answer itself and is only known at the end of the session, so it could never be a predictor.
 
 ---
 
-## 2.4 Métricas de avaliação
+## 2.3 Consequences of the errors
 
-Um modelo que prevê sempre normal acertaria cerca de 81% das sessões, mas teria recall de 0%. É o accuracy paradox, ou seja, com  aproximadamente 18% de anomalias a acurácia mede mais o desbalanceamento do período do que a qualidade do modelo, e por isso não vai ser usada.
+A false positive (FP) is an alert on a session that would be normal. The cost is low (a user keeps an eye on a session unnecessarily or a technician checks a station that was fine), but if it happens too much the operators start to ignore the alerts. As for a false negative (FN), it is an abnormal session without an alert. The user is left without charging and the station with a problem continues to be used without anyone knowing.
 
-A métrica principal seria a AUC-PR. Pois ela é indicada quando a classe positiva é minoritária e quando os falsos positivos e falsos negativos acabam por ter custos diferentes, que são os nossos dois casos em questão. Como não depende do threshold, serve para comparar modelos e escolher hiperparâmetros antes do threshold acabar por ser definido. A limitação fianel é que o valor de um modelo sem skill é igual à taxa de anomalia, que muda de fold para fold, então cada fold acaba por ter que ser comparado com o seu próprio baseline.
+For the chosen use, the FN is the most important error. As we saw during Task 1, a station that failed recently tends to fail again (the station's failure rate on the last day is the variable most correlated with the target, 0,45), that is, letting a failure pass ends up also affecting the next users of that station besides the non-maintenance needed for it. Even so the FP should not be ignored: in every 1 000 sessions there are  about 186 sessions that are abnormal, and a model that gave an alert on all of them would catch the 186 but would generate about 814 false alerts. Therefore, the evaluation should give more weight to recall without letting precision drop too much.
 
-**Métricas complementares:**
+We also considered the intervention on the user (warning them to switch station), but then the false positives would become the most expensive error, since each false alert could bother a real customer. That is why it remains only as a possible extension for alerts with very high probability.
 
-| Métrica | Porquê | Limitação |
+---
+
+## 2.4 Evaluation metrics
+
+A model that always predicts normal would get about 81% of the sessions right, but would have a recall of 0%. It is the accuracy paradox, that is, with  approximately 18% of anomalies the accuracy measures more the imbalance of the period than the quality of the model, and that is why it will not be used.
+
+The main metric would be AUC-PR. Because it is indicated when the positive class is the minority and when false positives and false negatives end up having different costs, which are our two cases in question. Since it does not depend on the threshold, it serves to compare models and choose hyperparameters before the threshold ends up being defined. The final limitation is that the value of a model without skill is equal to the anomaly rate, which changes from fold to fold, so each fold ends up having to be compared with its own baseline.
+
+**Complementary metrics:**
+
+| Metric | Why | Limitation |
 |---|---|---|
-| Recall | controla os FN, o nosso erro mais grave | alertar tudo dá 100% |
-| Precision | controla os alertas falsos | sozinha também acaba por enganar |
-| F1 | junta precision e recall | dá o mesmo peso aos dois erros |
-| Balanced accuracy | corrige o desbalanceamento das classes | dá a mesma importância às duas classes |
-| MCC | usa as 4 células da matriz de confusão e é forte contra o desbalanceamento que vemos em nosso dataset | acaba por ser menos intuitivo |
-| ROC-AUC | mede a separação entre as classes | otimista demais quando as classes são desbalanceadas |
+| Recall | controls the FN, our most serious error | alerting everything gives 100% |
+| Precision | controls the false alerts | alone it also ends up deceiving |
+| F1 | combines precision and recall | gives the same weight to both errors |
+| Balanced accuracy | corrects the class imbalance | gives the same importance to both classes |
+| MCC | uses the 4 cells of the confusion matrix and is strong against the imbalance that we see in our dataset | ends up being less intuitive |
+| ROC-AUC | measures the separation between the classes | too optimistic when the classes are imbalanced |
 
-Para o threshold, fica o de maior precision entre os que garantem um recall mínimo (por exemplo, 70%), escolhido com as 3 validações juntas e nunca com o teste. Como métricas operacionais usamos os alertas corretos, alertas falsos e anomalias perdidas a cada 1 000 sessões.
+For the threshold, we keep the one with the highest precision among those that guarantee a minimum recall (for example, 70%), chosen with the 3 validations together and never with the test. As operational metrics we use the correct alerts, false alerts and missed anomalies per 1 000 sessions.
 
-Para a estabilidade entre folds usamos o desvio-padrão da AUC-PR e o pior fold. nas aulas vimos o teste de Wilcoxon para comparar modelos nos folds, mas com só 3 folds ele nunca consegue dar p < 0,05 (o menor p possível acaba sendo 0,25), então nos folds a comparação vai ser feita pela média, pelo desvio e por quantos folds cada modelo ganha. No teste final, como são cerca de 88 mil sessões, aí sim daria para utilizar o teste de McNemar.
+For the stability between folds we use the standard deviation of the AUC-PR and the worst fold. in the lectures we saw the Wilcoxon test to compare models across the folds, but with only 3 folds it can never give p < 0,05 (the smallest possible p ends up being 0,25), so across the folds the comparison will be made by the mean, by the deviation and by how many folds each model wins. In the final test, since there are about 88 thousand sessions, then yes it would be possible to use the McNemar test.
 
 ---
 
-## 2.5 Estratégia de validação temporal
+## 2.5 Temporal validation strategy
 
-Não usamos k-fold aleatório, porque ele misturaria sessões do futuro no treino. Primeiro, com os dados ordenados por data, separamos os 80% mais antigos para treino e os 20% mais recentes para teste. Depois, os folds são feitos só dentro dos 80% de treino, com rolling-origin, como indicado no enunciado do projeto, onde o treino tem sempre o mesmo tamanho e desliza para a frente junto com a validação.
+We do not use random k-fold, because it would mix sessions from the future into the training. First, with the data sorted by date, we separate the oldest 80% for training and the most recent 20% for test. Then, the folds are made only within the 80% of training, with rolling-origin, as indicated in the project statement, where the training always has the same size and slides forward together with the validation.
 
-Para isso criamos uma função (dividir_dados) que faz o corte 80/20 e depois usa o TimeSeriesSplit para dividir o treino em folds. Assim nenhuma data é escolhida à mão e a mesma função pode ser usada em qualquer outro dataset.
+For this we created a function (dividir_dados) that makes the 80/20 cut and then uses TimeSeriesSplit to divide the training into folds. This way no date is chosen by hand and the same function can be used on any other dataset.
 
-| Conjunto | Treino | Validação | Sessões na validação | Anomalias |
+| Set | Training | Validation | Sessions in the validation | Anomalies |
 |---|---|---|---|---|
 | Fold 1 | 01/04/2020–13/01/2021 | 13/01–03/05/2021 | 52 929 | 8 358 |
 | Fold 2 | 14/07/2020–03/05/2021 | 03/05–18/07/2021 | 52 929 | 10 416 |
 | Fold 3 | 22/09/2020–18/07/2021 | 18/07–22/09/2021 | 52 929 | 11 134 |
-| Teste final | as 180 000 sessões antes do teste | 22/09–31/12/2021 | 88 216 | — |
+| Final test | the 180 000 sessions before the test | 22/09–31/12/2021 | 88 216 | — |
 
-O teste fica com exatamente 20% das sessões (88 216 de 441 077) e começa em 22/09/2021. As validações ocupam os últimos 45% do treino, divididos em 3 folds com o mesmo número de sessões. Escolhemos 3 folds porque assim cada validação fica com mais de 8 mil anomalias. Com mais folds cada validação ficaria menor, e aumentar a parte do treino usada nas validações faria o primeiro treino começar mais cedo, justamente no período em que o histórico ainda está se formando.
+The test has exactly 20% of the sessions (88 216 of 441 077) and starts on 22/09/2021. The validations occupy the last 45% of the training, divided into 3 folds with the same number of sessions. We chose 3 folds because that way each validation has more than 8 thousand anomalies. With more folds each validation would be smaller, and increasing the part of the training used in the validations would make the first training start earlier, precisely in the period in which the history is still being formed.
 
-Cada treino tem 180 000 sessões, que é mais ou menos o tamanho do primeiro treino. Com isso o treino do fold 1 começa em abr/2020 e os meses de dez/2019 e jan/2020, identificados como "outliers" na Task 1 (94% e 31% de usuários novos, respectivamente), ficam de fora de todos os folds.
+Each training has 180 000 sessions, which is more or less the size of the first training. With this the training of fold 1 starts in Apr/2020 and the months of Dec/2019 and Jan/2020, identified as "outliers" in Task 1 (94% and 31% of new users, respectively), are left out of all the folds.
 
-Como vimos na secção 1.5 da Task 1, a taxa de anomalia muda bastante ao longo do tempo (podendo variar de 25% para 13,7% e de volta para 23%). Com o rolling o modelo aprende só com o passado recente e os treinos ficam todos com o mesmo tamanho. As 180 000 sessões correspondem a cerca de 9 a 10 meses, ou seja, quase um ciclo inteiro de estações. A desvantagem é deixar de usar os meses mais antigos.
+As we saw in section 1.5 of Task 1, the anomaly rate changes a lot over time (being able to vary from 25% to 13,7% and back to 23%). With rolling the model learns only from the recent past and the trainings all have the same size. The 180 000 sessions correspond to about 9 to 10 months, that is, almost an entire cycle of seasons. The disadvantage is no longer using the oldest months.
 
-Como os folds são feitos pelo número de sessões, todas as validações têm o mesmo tamanho, mas não a mesma duração (cerca de 3,6, 2,5 e 2,2 meses), porque o volume de sessões cresce ao longo de 2021. As validações não se sobrepõem entre si, então cada sessão de 13/01/2021 até 22/09/2021 é avaliada uma única vez apenas.
+Since the folds are made by the number of sessions, all the validations have the same size, but not the same duration (about 3,6, 2,5 and 2,2 months), because the volume of sessions grows over 2021. The validations do not overlap each other, so each session from 13/01/2021 to 22/09/2021 is evaluated one single time only.
 
-Tudo o que o modelo aprende dos dados (scaler, one-hot, limite de outliers, etc) é ajustado só no treino de cada fold e depois apenas aplicado na validação, que fica sempre com a distribuição original. O log1p não aprende nada dos dados, por isso pode ser aplicado em tudo.
+Everything that the model learns from the data (scaler, one-hot, outlier limit, etc) is fitted only on the training of each fold and then only applied to the validation, which always keeps the original distribution. log1p does not learn anything from the data, so it can be applied to everything.
 
-O teste foi separado logo no início e não entra em nenhuma decisão. Modelos, parametros e threshold são escolhidos só com os 3 folds. No fim, o modelo final é treinado nas 180 000 sessões antes do teste e avaliado uma única vez, sem voltar atrás caso o resultado não seja bom, senão o teste acabaria por virar mais uma validação e o resultado deixaria de ser imparcial.
+The test was separated right at the start and does not enter any decision. Models, parameters and threshold are chosen only with the 3 folds. In the end, the final model is trained on the 180 000 sessions before the test and evaluated a single time, without going back in case the result is not good, otherwise the test would end up becoming one more validation and the result would no longer be impartial.
 
 ---
 
-## 2.6 Agregação entre folds
+## 2.6 Aggregation across folds
 
-Cada modelo vai ter um resultado por fold, e precisamos decidir como juntar esses 3 valores num resumo. As formas possíveis são a média simples, a média ponderada pelo tamanho da validação e a pooled, onde juntamos as 3 validações numa só e calculamos a métrica uma única vez.
+Each model will have one result per fold, and we need to decide how to combine these 3 values into a summary. The possible ways are the simple mean, the mean weighted by the size of the validation and the pooled, where we combine the 3 validations into a single one and calculate the metric one single time.
 
-Como as 3 validações têm o mesmo número de sessões, a média ponderada acaba por dar exatamente o mesmo valor que a média simples. Já na pooled os folds 2 e 3, que têm mais anomalias, acabam por pesar mais do que o fold 1. Na média simples cada período conta o mesmo.
+Since the 3 validations have the same number of sessions, the weighted mean ends up giving exactly the same value as the simple mean. As for the pooled, folds 2 and 3, which have more anomalies, end up weighing more than fold 1. In the simple mean each period counts the same.
 
-Logo, para comparar os modelos vamos usar a média simples da AUC-PR, já que queremos que o modelo funcione bem em todos os períodos e não só no maior. Junto com ela vamos sempre mostrar o desvio-padrão, o pior fold e o valor de cada fold, porque a média sozinha pode esconder muita variação entre os períodos. Também vamos contar em quantos dos 3 folds o modelo passa da regra, visto que um modelo que ganha na média mas perde em algum fold não é confiável. Já a forma pooled vai ser usada para escolher o threshold e para as métricas operacionais por 1 000 sessões, já que aí faz sentido juntar todas as sessões de validação.
+Therefore, to compare the models we will use the simple mean of the AUC-PR, since we want the model to work well in all periods and not only in the largest one. Along with it we will always show the standard deviation, the worst fold and the value of each fold, because the mean alone can hide a lot of variation between the periods. We will also count in how many of the 3 folds the model beats the rule, since a model that wins on the mean but loses in some fold is not reliable. As for the pooled form, it will be used to choose the threshold and for the operational metrics per 1 000 sessions, since there it makes sense to combine all the validation sessions.
 
-Quanto à evolução no tempo, a taxa de anomalia sobe de 15,8% no fold 1 para 19,7% e 21,0% nos folds 2 e 3. Como a AUC-PR de um modelo sem skill acompanha essa taxa, um modelo pode parecer que melhora ao longo do tempo só porque o período tem mais anomalias, e por isso a evolução no tempo tem que ser lida sempre em relação ao baseline de cada fold.
+As for the evolution over time, the anomaly rate rises from 15,8% in fold 1 to 19,7% and 21,0% in folds 2 and 3. Since the AUC-PR of a no-skill model follows this rate, a model may seem to improve over time just because the period has more anomalies, and that is why the evolution over time always has to be read relative to the baseline of each fold.
 
 ---
 
 ## 2.7 Baseline
 
-Para sabermos se um modelo é bom precisamos de uma régua para comparação, e por isso definimos dois baselines, ambos medidos com a AUC-PR, que é a nossa métrica principal.
+To know whether a model is good we need a yardstick for comparison, and that is why we defined two baselines, both measured with the AUC-PR, which is our main metric.
 
-| Fold | Taxa de anomalia | No-skill (AUC-PR esperada) |
+| Fold | Anomaly rate | No-skill (expected AUC-PR) |
 |---|---|---|
 | 1 | 15,8% | 0,158 |
 | 2 | 19,7% | 0,197 |
 | 3 | 21,0% | 0,210 |
 
-O primeiro é o no-skill, ou seja, o mesmo modelo que prevê sempre normal que usamos no teste da acurácia. Como ele não ordena as sessões de nenhuma forma, a sua AUC-PR acaba por ser exatamente a taxa de anomalia de cada fold, como já tínhamos comentado nas métricas. Qualquer modelo que não passe desses valores não aprendeu nada.
+The first is the no-skill, that is, the same model that always predicts normal that we used in the accuracy test. Since it does not rank the sessions in any way, its AUC-PR ends up being exactly the anomaly rate of each fold, as we had already commented in the metrics. Any model that does not beat these values has not learned anything.
 
-O segundo é uma regra simples, onde usamos diretamente a taxa de falhas do posto no dia anterior (post_previous_abnormal_rate_1D), que foi a variável mais correlacionada com o alvo (is_Abnormal) na Task 1 (0,45), como pontuação de risco. Ou seja, quanto mais o posto falhou ontem, maior o risco da sessão de hoje ser anormal. Ela não precisa de treino nem de threshold, por isso é uma régua simples de calcular em cada fold.
+The second is a simple rule, where we directly use the station's failure rate on the previous day (post_previous_abnormal_rate_1D), which was the variable most correlated with the target (is_Abnormal) in Task 1 (0,45), as a risk score. That is, the more the station failed yesterday, the higher the risk of today's session being abnormal. It does not need training or a threshold, so it is a simple yardstick to calculate in each fold.
 
-Logo, a régua que realmente importa é a regra e não o no-skill. Se o modelo final não passar claramente da regra, significa que as outras variáveis (clima, localização, histórico do usuário, etc.) não estão a acrescentar nada ao que o histórico do posto já diz sozinho. A comparação tem sempre que ser feita fold a fold, visto que tanto a taxa de anomalia quanto o resultado da regra mudam de um período para outro.
+Therefore, the yardstick that really matters is the rule and not the no-skill. If the final model does not clearly beat the rule, it means that the other variables (weather, location, user history, etc.) are not adding anything to what the station history already says on its own. The comparison always has to be made fold by fold, since both the anomaly rate and the result of the rule change from one period to another.
 
 ---
 
-## 2.8 Protocolo de avaliação
+## 2.8 Evaluation protocol
 
-A fim de fecharmos a Task 2, juntamos aqui tudo o que foi decidido. Este protocolo fica definido antes de qualquer modelo ser treinado, ou seja, não vamos mudar estas regras depois de ver os resultados que teremos na Task 3.
+In order to close Task 2, we gather here everything that was decided. This protocol is defined before any model is trained, that is, we will not change these rules after seeing the results that we will have in Task 3.
 
-| Item | Decisão |
+| Item | Decision |
 |---|---|
-| Problema | prever, no início de cada sessão (Start Time), se ela vai ser anormal (is_Abnormal = 1) ou normal (0) |
-| Uso | monitoramento automático e priorização da manutenção dos postos |
-| Preditores admitidos | as 28 colunas do CSV tratado (local, clima, tariff_period, histórico do posto e do usuário, user_active_sessions_at_start) e o Start Time, de onde vamos tirar a hora e o dia da semana |
-| Excluídos | End cause (só serve para o alvo), as 7 colunas geradas durante ou depois da sessão, Order creation time e electricity_price (redundantes) e as 6 variáveis com correlação acima de 0,9 |
-| A avaliar na modelação | UserID e Charging Post ID, comparando o modelo com e sem eles |
-| Divisão temporal | 80% treino e 20% teste, por ordem cronológica; rolling-origin só dentro do treino, com treinos de 180 000 sessões e 3 folds com validações de 52 929 sessões (13/01 a 22/09/2021); teste final de 22/09 a 31/12/2021, usado uma única vez |
-| Pré-processamento | scaler, one-hot, limite de outliers, etc., ajustados só no treino de cada fold |
-| Erro mais grave | o FN (anomalia não detetada), sem ignorar o FP (alertas falsos demais) |
-| Métrica principal | AUC-PR |
-| Métricas complementares | recall, precision, F1, balanced accuracy, MCC e ROC-AUC (a acurácia não é usada) |
-| Threshold | o de maior precision entre os que garantem um recall mínimo, escolhido com as 3 validações juntas |
-| Métricas operacionais | alertas corretos, alertas falsos e anomalias perdidas a cada 1 000 sessões |
-| Baselines | no-skill (sempre normal, AUC-PR = taxa de anomalia do fold) e regra com a post_previous_abnormal_rate_1D |
-| Agregação | média simples da AUC-PR para comparar modelos, sempre com o desvio-padrão, o pior fold e quantos folds o modelo ganha da regra; pooled para o threshold e as métricas operacionais |
-| Comparação estatística | nos folds pela média, desvio e folds ganhos (o Wilcoxon não serve com 3 folds); no teste final com o McNemar |
+| Problem | predict, at the start of each session (Start Time), whether it will be abnormal (is_Abnormal = 1) or normal (0) |
+| Use | automatic monitoring and prioritization of the maintenance of the stations |
+| Admitted predictors | the 28 columns of the treated CSV (location, weather, tariff_period, station and user history, user_active_sessions_at_start) and Start Time, from which we will extract the hour and the day of the week |
+| Excluded | End cause (it only serves for the target), the 7 columns generated during or after the session, Order creation time and electricity_price (redundant) and the 6 variables with correlation above 0,9 |
+| To evaluate in the modeling | UserID and Charging Post ID, comparing the model with and without them |
+| Temporal split | 80% training and 20% test, in chronological order; rolling-origin only within the training, with trainings of 180 000 sessions and 3 folds with validations of 52 929 sessions (13/01 to 22/09/2021); final test from 22/09 to 31/12/2021, used one single time |
+| Preprocessing | scaler, one-hot, outlier limit, etc., fitted only on the training of each fold |
+| Most serious error | the FN (undetected anomaly), without ignoring the FP (too many false alerts) |
+| Main metric | AUC-PR |
+| Complementary metrics | recall, precision, F1, balanced accuracy, MCC and ROC-AUC (accuracy is not used) |
+| Threshold | the one with the highest precision among those that guarantee a minimum recall, chosen with the 3 validations together |
+| Operational metrics | correct alerts, false alerts and missed anomalies per 1 000 sessions |
+| Baselines | no-skill (always normal, AUC-PR = anomaly rate of the fold) and rule with post_previous_abnormal_rate_1D |
+| Aggregation | simple mean of the AUC-PR to compare models, always with the standard deviation, the worst fold and in how many folds the model beats the rule; pooled for the threshold and the operational metrics |
+| Statistical comparison | in the folds by the mean, deviation and folds won (Wilcoxon does not work with 3 folds); in the final test with McNemar |
 
-Lembrando que um modelo só vai ser considerado bom se passar claramente da regra em todos os folds, e não só na média.
+Keeping in mind that a model will only be considered good if it clearly beats the rule in all folds, and not only on the mean.
 
 ---
 
-# Task 3 — Modelos individuais e ensemble
+# Task 3 — Individual models and ensemble
 
-## 3.1 Configuração comum
+## 3.1 Common configuration
 
-Tabela 3.1 — Pré-processamento por tipo de modelo (ajustado só no treino de cada fold)
+Table 3.1 — Preprocessing by model type (fitted only on the training of each fold)
 
-| | Regressão logística | Naive Bayes misto | Árvores (DT, RF, HistGB) |
+| | Logistic regression | Mixed Naive Bayes | Trees (DT, RF, HistGB) |
 |---|---|---|---|
-| Categóricas (local, distrito, tarifa) | One-hot | Frequências com Laplace (`CategoricalNB`) | One-hot |
-| `hora`, `dia_da_semana` | One-hot | Categóricas | Numéricas |
-| Contagens e tempos muito assimétricos (skew > 3) | `log1p` + `StandardScaler` | `log1p` + normal por classe (`GaussianNB`) | Sem transformação |
-| Restantes numéricas | `StandardScaler` | Normal por classe (`GaussianNB`) | Sem transformação |
-| NaN | Máximo do treino | Máximo do treino | Mantidos (a implementação suporta-os) |
+| Categorical (location, district, tariff) | One-hot | Frequencies with Laplace (`CategoricalNB`) | One-hot |
+| `hora`, `dia_da_semana` | One-hot | Categorical | Numeric |
+| Very asymmetric counts and times (skew > 3) | `log1p` + `StandardScaler` | `log1p` + normal per class (`GaussianNB`) | No transformation |
+| Remaining numeric | `StandardScaler` | Normal per class (`GaussianNB`) | No transformation |
+| NaN | Training maximum | Training maximum | Kept (the implementation supports them) |
 
 
-> Aulas: Aula 4, slides 30 e 64 · regra de ouro da Aula 3 · Guia 5.3 e 8.
+> Lectures: Lecture 4, slides 30 and 64 · golden rule of Lecture 3 · Guide 5.3 and 8.
 
-Nesta parte da Task 3, estamos apenas reutilizando o protocolo definido na Task 2 (3 folds temporais, AUC-PR, regra e no-skill, média simples + desvio + pior fold + folds > regra).
+In this part of Task 3, we are only reusing the protocol defined in Task 2 (3 temporal folds, AUC-PR, rule and no-skill, simple mean + deviation + worst fold + folds > rule).
 
-Na Logistic Regression (LR), cada feature contribui com peso × valor, e isso acaba por ser um problema quando temos uma variável como a hora, que vai de 0 a 23: o modelo só consegue aprender um efeito monótono (o risco só sobe ou só desce ao longo do dia). Além disso, os valores mínimo e máximo da hora estão lado a lado, o que não acontece nos números (0 fica longe de 23 na numeração, mas, em relação à hora, estão lado a lado). A solução acaba por ser usar one-hot, que dá um peso independente para cada hora. Esse mesmo one-hot acaba sendo desnecessário e até contraproducente nas árvores, já que elas fazem cortes do tipo Hora >= X e conseguem separar intervalos de horas a partir da variável numérica. Com one-hot, cada corte só separaria uma hora das restantes.
+In Logistic Regression (LR), each feature contributes with weight × value, and this ends up being a problem when we have a variable like the hour, which goes from 0 to 23: the model can only learn a monotonic effect (the risk only rises or only falls throughout the day). In addition, the minimum and maximum values of the hour are side by side, which does not happen in the numbers (0 is far from 23 in the numbering, but, in relation to the hour, they are side by side). The solution ends up being to use one-hot, which gives an independent weight to each hour. This same one-hot ends up being unnecessary and even counterproductive in the trees, since they make cuts of the type Hour >= X and can separate hour intervals from the numeric variable. With one-hot, each cut would only separate one hour from the rest.
 
-Outro ponto que é bom explicar é que o log1p não causa leakage, diferente do StandardScaler. Isso se dá pela forma como as fórmulas funcionam: o log1p transforma cada valor sozinho (log(1 + x)), sem usar informação das outras sessões, por isso pode ser aplicado a qualquer momento sem gerar leakage. Já o StandardScaler, por subtrair a média e dividir pelo desvio padrão, usa informação que precisa ser extraída dos dados. Ou seja, existe um momento certo para aplicá-lo: ele é ajustado só no treino de cada fold (dentro do Pipeline) e depois aplicado à validação. Se fosse ajustado com todos os dados, a média e o desvio já incluiriam informação da validação.
+Another point that is good to explain is that log1p does not cause leakage, unlike StandardScaler. This is due to the way the formulas work: log1p transforms each value alone (log(1 + x)), without using information from the other sessions, so it can be applied at any moment without generating leakage. As for StandardScaler, by subtracting the mean and dividing by the standard deviation, it uses information that needs to be extracted from the data. That is, there is a right moment to apply it: it is fitted only on the training of each fold (inside the Pipeline) and then applied to the validation. If it were fitted with all the data, the mean and the deviation would already include information from the validation.
 
-E, finalmente, chegamos aos NaN, que recebem o valor máximo do treino de cada fold. Esses NaN aparecem nas colunas do tipo "horas desde o último evento" quando o evento nunca aconteceu. Caso recebessem 0, entrariam com o significado oposto: o evento teria acabado de acontecer, quando na verdade nunca aconteceu. Dessa forma, receber o valor máximo do treino nos dá uma variável utilizável e coerente (quanto maior o valor, mais tempo sem o evento), e a flag *_no_previous_* continua a separar os casos em que o evento nunca aconteceu.
+And, finally, we come to the NaN, which receive the maximum value of the training of each fold. These NaN appear in the columns of the type "hours since the last event" when the event never happened. If they received 0, they would enter with the opposite meaning: the event would have just happened, when in fact it never happened. This way, receiving the maximum value of the training gives us a usable and coherent variable (the larger the value, the more time without the event), and the flag *_no_previous_* continues to separate the cases in which the event never happened.
 
 ---
 
-## 3.2 Contribuição dos grupos de variáveis (ablação)
+## 3.2 Contribution of the variable groups (ablation)
 
 
-### 3.2.1 Grupos e modelos
+### 3.2.1 Groups and models
 
-Tabela 3.2.1 — Grupos de variáveis
+Table 3.2.1 — Variable groups
 
-| Grupo | Variáveis acrescentadas | Nº total |
+| Group | Added variables | Total no. |
 |---|---|---|
-| G1 — contexto e clima | `Location Information`, `District Name`, `hora`, `dia_da_semana`, temperatura, humidade, precipitação | 7 |
-| G2 — G1 + tarifa | `tariff_period` | 8 |
-| G3 — G2 + histórico do posto | 12 variáveis `post_*` | 20 |
-| G4 — G3 + histórico do utilizador | 9 variáveis `user_*` e `user_active_sessions_at_start` | 30 |
+| G1 — context and weather | `Location Information`, `District Name`, `hora`, `dia_da_semana`, temperature, humidity, precipitation | 7 |
+| G2 — G1 + tariff | `tariff_period` | 8 |
+| G3 — G2 + station history | 12 `post_*` variables | 20 |
+| G4 — G3 + user history | 9 `user_*` variables and `user_active_sessions_at_start` | 30 |
 
-Por que acabamos por escolher, em princípio, 2 modelos para a ablação e não apenas um? Além de serem modelos com princípios diferentes. A ideia principal era a de verificar se os nossos resultados dependem ou não dos modelos que utilizamos. A ideia geral é que a nossa conclusão não dependa do tipo de modelo. Se uma variável ou um grupo de variáveis melhora os dois modelos, isso indica que o ganho vem da informação e não do modelo.
+Why did we end up choosing, in principle, 2 models for the ablation and not just one? Besides being models with different principles. The main idea was to check whether or not our results depend on the models we use. The general idea is that our conclusion does not depend on the type of model. If a variable or a group of variables improves both models, this indicates that the gain comes from the information and not from the model.
 
-A variável user_active_sessions_at_start acabou por ficar no grupo do usuário, pois ela conta quantas sessões abertas o usuário tem no momento, descrevendo assim o usuário, e não o posto. Caso ficasse no grupo 3, esse grupo já teria informação do usuário, e a comparação entre o grupo 3 e o grupo 4 deixaria de medir quanto vale o histórico do usuário.
+The variable user_active_sessions_at_start ended up staying in the user group, because it counts how many open sessions the user has at the moment, thus describing the user, and not the station. If it stayed in group 3, that group would already have user information, and the comparison between group 3 and group 4 would no longer measure how much the user history is worth.
 
-Já a variável UserID ficou de fora por questões de privacidade, visto que basear a previsão de falha no usuário poderia acabar por marcar usuários específicos como responsáveis pelas falhas. Já o Charging Post ID ficou de fora, pois o modelo pode decorar postos específicos, além de não ajudar na previsão para postos novos (secção 3.2.8).
+As for the variable UserID, it was left out for privacy reasons, since basing the failure prediction on the user could end up marking specific users as responsible for the failures. As for the Charging Post ID, it was left out, because the model may memorize specific stations, besides not helping in the prediction for new stations (section 3.2.8).
 
-### 3.2.2 Resultados
+### 3.2.2 Results
 
-Tabela 3.2.2a — AUC-PR na validação de cada fold, por modelo e grupo de variáveis
+Table 3.2.2a — AUC-PR in the validation of each fold, by model and variable group
 
-| Modelo | Grupo | Fold 1 | Fold 2 | Fold 3 | Média | Desvio | Pior fold | Folds > regra |
+| Model | Group | Fold 1 | Fold 2 | Fold 3 | Mean | Deviation | Worst fold | Folds > rule |
 |---|---|---|---|---|---|---|---|---|
 | No-skill | — | 0,158 | 0,197 | 0,210 | 0,188 | 0,027 | 0,158 | — |
-| Regra | — | 0,450 | 0,602 | 0,590 | 0,548 | 0,084 | 0,450 | — |
+| Rule | — | 0,450 | 0,602 | 0,590 | 0,548 | 0,084 | 0,450 | — |
 | LR | G1 | 0,249 | 0,310 | 0,334 | 0,298 | 0,044 | 0,249 | 0 |
 | LR | G2 | 0,249 | 0,310 | 0,335 | 0,298 | 0,044 | 0,249 | 0 |
 | LR | G3 | 0,506 | 0,636 | 0,617 | 0,586 | 0,070 | 0,506 | 3 |
@@ -555,41 +555,41 @@ Tabela 3.2.2a — AUC-PR na validação de cada fold, por modelo e grupo de vari
 | HistGB | G3 | 0,538 | 0,661 | 0,642 | 0,613 | 0,066 | 0,538 | 3 |
 | HistGB | G4 | 0,564 | 0,679 | 0,653 | 0,632 | 0,061 | 0,564 | 3 |
 
-Tabela 3.2.2b — Ganho de AUC-PR ao acrescentar cada grupo (diferença para o grupo anterior)
+Table 3.2.2b — AUC-PR gain when adding each group (difference to the previous group)
 
-| Modelo | Variáveis acrescentadas | Fold 1 | Fold 2 | Fold 3 | Média |
+| Model | Added variables | Fold 1 | Fold 2 | Fold 3 | Mean |
 |---|---|---|---|---|---|
-| LR | Tarifa (G2 − G1) | +0,0000 | +0,0000 | +0,0001 | +0,0001 |
-| LR | Histórico do posto (G3 − G2) | +0,2572 | +0,3263 | +0,2822 | +0,2885 |
-| LR | Histórico do utilizador (G4 − G3) | +0,0258 | +0,0158 | +0,0104 | +0,0174 |
-| HistGB | Tarifa (G2 − G1) | +0,0005 | +0,0016 | +0,0045 | +0,0022 |
-| HistGB | Histórico do posto (G3 − G2) | +0,3048 | +0,3587 | +0,2950 | +0,3195 |
-| HistGB | Histórico do utilizador (G4 − G3) | +0,0258 | +0,0187 | +0,0114 | +0,0186 |
+| LR | Tariff (G2 − G1) | +0,0000 | +0,0000 | +0,0001 | +0,0001 |
+| LR | Station history (G3 − G2) | +0,2572 | +0,3263 | +0,2822 | +0,2885 |
+| LR | User history (G4 − G3) | +0,0258 | +0,0158 | +0,0104 | +0,0174 |
+| HistGB | Tariff (G2 − G1) | +0,0005 | +0,0016 | +0,0045 | +0,0022 |
+| HistGB | Station history (G3 − G2) | +0,3048 | +0,3587 | +0,2950 | +0,3195 |
+| HistGB | User history (G4 − G3) | +0,0258 | +0,0187 | +0,0114 | +0,0186 |
 
-### 3.2.3 A tarifa traz informação além da hora?
+### 3.2.3 Does the tariff bring information beyond the hour?
 
-No fim das contas não, não traz. Isso porque cada hora acaba sempre por cair num único período de tarifa. Logo, o ganho que se tem de juntar a tarifa não adiciona muita diferença entre os folds, pois sabendo a hora já se sabe a tarifa. O ganho em LR é praticamente nenhum (explicado pelo fato já abordado anteriormente onde a hora aqui entra como one-hot). Já no HistGB a hora entra mesmo como número, precisando de dois cortes enquanto a tarifa já junta esses cortes em uma variável.
+In the end no, it does not. This is because each hour always ends up falling into a single tariff period. Therefore, the gain from adding the tariff does not add much difference between the folds, because knowing the hour one already knows the tariff. The gain in LR is practically none (explained by the fact already addressed previously where the hour here enters as one-hot). As for HistGB, the hour actually enters as a number, needing two cuts while the tariff already joins these cuts in one variable.
 
-A tarifa acaba por ser um facilitador do trabalho da árvore, mas é apenas uma outra forma de se apresentar a mesma informação já existente na hora, não uma informação nova. Esse ponto já havia sido discutido em notebooks anteriores.
+The tariff ends up being a facilitator of the tree's work, but it is just another way of presenting the same information already existing in the hour, not new information. This point had already been discussed in previous notebooks.
 
-### 3.2.4 Quanto contribui o histórico do posto?
+### 3.2.4 How much does the station history contribute?
 
-No fundo o histórico do posto acaba por ser, de longe, o grupo que mais contribui nas análises. Em relação ao acaso, os modelos passam de cerca de 1,5× para cerca de 3× (tabela 3.2.6). Ao passar do G2 para o G3, a AUC-PR sobe em média +0,29 na LR e +0,32 no HistGB (tabela 3.2.2b), enquanto a tarifa não traz quase nada e o histórico do usuário traz cerca de +0,02.
+Deep down the station history ends up being, by far, the group that contributes the most in the analyses. Relative to chance, the models go from about 1,5× to about 3× (table 3.2.6). When going from G2 to G3, the AUC-PR rises on average +0,29 in LR and +0,32 in HistGB (table 3.2.2b), while the tariff brings almost nothing and the user history brings about +0,02.
 
-Além disso, com o G3, os dois modelos passam a ganhar da regra nos 3 folds, o que não acontecia com os grupos 1 e 2. Como a regra usa apenas a rate_1D, isso mostra que juntar o histórico completo do posto (7 e 30 dias, horas desde a última falha, entre outras variáveis) acaba por trazer mais informação além da do dia anterior.
+In addition, with G3, both models start to beat the rule in the 3 folds, which did not happen with groups 1 and 2. Since the rule uses only rate_1D, this shows that combining the complete station history (7 and 30 days, hours since the last failure, among other variables) ends up bringing more information beyond that of the previous day.
 
 
-### 3.2.5 O histórico do utilizador traz benefício adicional?
+### 3.2.5 Does the user history bring additional benefit?
 
-O histórico do usuário acaba por trazer um benefício pequeno, mas consistente. Ao passar do grupo 3 para o grupo 4, a AUC-PR sobe em média +0,017 na LR e +0,019 no HistGB (tabela 3.2.2b), bem menos do que o histórico do posto, mas o ganho é positivo nas 6 comparações (3 folds × 2 modelos). Porém, esse ganho acaba por diminuir do fold 1 para o fold 3 (de +0,026 para cerca de +0,01 nos dois modelos). Uma hipótese é que, com o tempo, entram mais usuários novos, sem histórico, e assim o histórico do usuário acaba por ajudar menos, mas isso não foi verificado
+The user history ends up bringing a small, but consistent, benefit. When going from group 3 to group 4, the AUC-PR rises on average +0,017 in LR and +0,019 in HistGB (table 3.2.2b), much less than the station history, but the gain is positive in the 6 comparisons (3 folds × 2 models). However, this gain ends up decreasing from fold 1 to fold 3 (from +0,026 to about +0,01 in both models). One hypothesis is that, over time, more new users come in, without history, and thus the user history ends up helping less, but this was not verified
 
-### 3.2.6 O efeito é consistente entre períodos?
+### 3.2.6 Is the effect consistent across periods?
 
-Tabela 3.2.6 — AUC-PR a dividir pela prevalência de cada fold (quantas vezes melhor do que o acaso)
+Table 3.2.6 — AUC-PR divided by the prevalence of each fold (how many times better than chance)
 
-| Modelo | Grupo | Fold 1 | Fold 2 | Fold 3 |
+| Model | Group | Fold 1 | Fold 2 | Fold 3 |
 |---|---|---|---|---|
-| Regra | — | 2,85× | 3,06× | 2,81× |
+| Rule | — | 2,85× | 3,06× | 2,81× |
 | LR | G1 | 1,58× | 1,58× | 1,59× |
 | LR | G2 | 1,58× | 1,58× | 1,59× |
 | LR | G3 | 3,21× | 3,23× | 2,93× |
@@ -599,82 +599,82 @@ Tabela 3.2.6 — AUC-PR a dividir pela prevalência de cada fold (quantas vezes 
 | HistGB | G3 | 3,41× | 3,36× | 3,05× |
 | HistGB | G4 | 3,57× | 3,45× | 3,10× |
 
-No geral, sim, o efeito acaba por ser consistente. Olhando a tabela 3.2.2b, todos os ganhos têm o mesmo sinal nos 3 folds, ou seja, nenhum grupo de variáveis piora o modelo em algum período. O histórico do posto e o histórico do usuário sobem a AUC-PR nos 3 folds e nos dois modelos, e a tarifa fica praticamente em zero em todos eles.
+Overall, yes, the effect ends up being consistent. Looking at table 3.2.2b, all the gains have the same sign in the 3 folds, that is, no variable group makes the model worse in any period. The station history and the user history raise the AUC-PR in the 3 folds and in both models, and the tariff stays practically at zero in all of them.
 
-Já na tabela 3.2.6, a AUC-PR foi dividida pela prevalência de cada fold, pois a AUC-PR do acaso muda de fold para fold (15,8%, 19,7% e 21,0%), e assim temos quantas vezes o modelo é melhor do que o acaso. No fold 3, os modelos com o histórico do posto acabam por cair (o HistGB no grupo 3 passa de 3,36× para 3,05×), mas a regra também cai (de 3,06× para 2,81×). Como a regra não é treinada, isso indica que a queda vem principalmente do próprio período, e não dos modelos em si.
+As for table 3.2.6, the AUC-PR was divided by the prevalence of each fold, because the AUC-PR of chance changes from fold to fold (15,8%, 19,7% and 21,0%), and thus we have how many times the model is better than chance. In fold 3, the models with the station history end up dropping (HistGB in group 3 goes from 3,36× to 3,05×), but the rule also drops (from 3,06× to 2,81×). Since the rule is not trained, this indicates that the drop comes mainly from the period itself, and not from the models themselves.
 
-### 3.2.7 Preocupações operacionais e éticas
+### 3.2.7 Operational and ethical concerns
 
-Tabela 3.2.7 — HistGB no G3, avaliado em subgrupos de sessões (o modelo é o mesmo; muda só o conjunto avaliado)
+Table 3.2.7 — HistGB on G3, evaluated on subgroups of sessions (the model is the same; only the evaluated set changes)
 
 |  | Fold 1 | Fold 2 | Fold 3 |
 |---|---|---|---|
-| AUC-PR — todas as sessões | 0,538 | 0,661 | 0,642 |
-| AUC-PR — sem as sessões de frota | 0,539 | 0,660 | 0,643 |
-| AUC-PR — só as sessões de frota | 0,504 | 0,685 | 0,618 |
-| Prevalência — todas as sessões | 15,8% | 19,7% | 21,0% |
-| Prevalência — só as sessões de frota | 14,0% | 19,9% | 21,8% |
-| Todas as sessões ÷ prevalência | 3,41× | 3,36× | 3,05× |
-| Só frotas ÷ prevalência das frotas | 3,61× | 3,44× | 2,83× |
-| Nº de sessões de frota | 2097 | 2410 | 2481 |
+| AUC-PR — all sessions | 0,538 | 0,661 | 0,642 |
+| AUC-PR — without the fleet sessions | 0,539 | 0,660 | 0,643 |
+| AUC-PR — only the fleet sessions | 0,504 | 0,685 | 0,618 |
+| Prevalence — all sessions | 15,8% | 19,7% | 21,0% |
+| Prevalence — only the fleet sessions | 14,0% | 19,9% | 21,8% |
+| All sessions ÷ prevalence | 3,41× | 3,36× | 3,05× |
+| Only fleets ÷ prevalence of the fleets | 3,61× | 3,44× | 2,83× |
+| No. of fleet sessions | 2097 | 2410 | 2481 |
 
-Com o G4, temos um grande problema, o risco de uma sessão acabar por depender também de quem está carregando o veículo. Isso pode marcar usuários por falhas que não causaram e deixar as contas de frota dominarem o padrão. Como o alerta vai apenas para o operador e não bloqueia a sessão, um erro custa no máximo uma inspeção a mais, mas mesmo assim foi um dos motivos para escolhermos o G3.
+With G4, we have a big problem, the risk of a session ending up also depending on who is charging the vehicle. This can mark users for failures they did not cause and let the fleet accounts dominate the pattern. Since the alert goes only to the operator and does not block the session, an error costs at most one extra inspection, but even so it was one of the reasons for us to choose G3.
 
-O histórico do posto também tem os seus problemas: falhas que vêm do carro (como o Vehicle charging faults, que tbm acaba por não ser culpa do usuário) acabam por contar contra o posto, e postos novos ou com poucas sessões têm um histórico pouco confiável. Já a tabela 3.2.7 mostra que, no G3, tirar as sessões de frota quase não muda a AUC-PR, ou seja, o modelo funciona de forma parecida para as frotas e para o resto. O limite é que são apenas 2 contas de frota.
+The station history also has its problems: failures that come from the car (such as Vehicle charging faults, which also ends up not being the user's fault) end up counting against the station, and new stations or ones with few sessions have an unreliable history. As for table 3.2.7, it shows that, on G3, removing the fleet sessions hardly changes the AUC-PR, that is, the model works in a similar way for the fleets and for the rest. The limit is that there are only 2 fleet accounts.
 
-### 3.2.8 Variáveis adicionais
+### 3.2.8 Additional variables
 
-Tabela 3.2.8 — HistGB no G3, com e sem o `Charging Post ID` (em one-hot)
+Table 3.2.8 — HistGB on G3, with and without the `Charging Post ID` (in one-hot)
 
-| Modelo | Fold 1 | Fold 2 | Fold 3 | Média | Desvio | Pior fold | Folds > regra |
+| Model | Fold 1 | Fold 2 | Fold 3 | Mean | Deviation | Worst fold | Folds > rule |
 |---|---|---|---|---|---|---|---|
 | HistGB G3 | 0,538 | 0,661 | 0,642 | 0,613 | 0,066 | 0,538 | 3 |
 | HistGB G3 + `Charging Post ID` | 0,538 | 0,661 | 0,639 | 0,613 | 0,066 | 0,538 | 3 |
-| Diferença (com − sem) | +0,0001 | −0,0001 | −0,0024 | −0,0008 | — | — | — |
+| Difference (with − without) | +0,0001 | −0,0001 | −0,0024 | −0,0008 | — | — | — |
 
-A hora e o dia da semana já foram justificados na secção 3.1. O Charging Post ID foi testado no HistGB com o G3 e não trouxe ganho (tabela 3.2.8), o que faz sentido, já que o histórico do posto já descreve cada posto e o ID não ajuda com postos novos. O UserID não foi testado, por questões de privacidade, e foi usado apenas para identificar as contas de frota (39 e 23).
+The hour and the day of the week were already justified in section 3.1. Charging Post ID was tested in HistGB with G3 and brought no gain (table 3.2.8), which makes sense, since the station history already describes each station and the ID does not help with new stations. UserID was not tested, for privacy reasons, and was used only to identify the fleet accounts (39 and 23).
 
 
-### 3.2.9 Grupo escolhido para os modelos
+### 3.2.9 Group chosen for the models
 
-Acabamos por escolher o G3 para os modelos (já separamos o G4 como o final por esse motivo). O G4 acaba por ser um pouco melhor (cerca de +0,02 de AUC-PR), mas o ganho é pequeno e traz os problemas éticos da secção 3.2.7, além de ir contra a exclusão do UserID. O protocolo da Task 2 diz quais variáveis podem ser usadas, mas não obriga a usar todas.
+We ended up choosing G3 for the models (we already separated G4 as the final one for this reason). G4 ends up being a bit better (about +0,02 of AUC-PR), but the gain is small and brings the ethical problems of section 3.2.7, besides going against the exclusion of UserID. The Task 2 protocol says which variables can be used, but does not require using all of them.
 
 
 ---
 
-## 3.3 Modelos individuais
+## 3.3 Individual models
 
-### 3.3.1 Algoritmos escolhidos
+### 3.3.1 Chosen algorithms
 
-Tabela 3.3.1 — Princípios de modelação
+Table 3.3.1 — Modeling principles
 
-| Princípio | Algoritmo | Usado |
+| Principle | Algorithm | Used |
 |---|---|---|
-| Linear | Regressão logística | ✅ |
-| Probabilístico | Naive Bayes (versão mista) | ✅ |
-| Árvores de decisão | Árvore de decisão (profundidade 6) | ✅ |
-| Baseado em instâncias | kNN | — |
-| Baseado em kernels | SVM | — |
+| Linear | Logistic regression | ✅ |
+| Probabilistic | Naive Bayes (mixed version) | ✅ |
+| Decision trees | Decision tree (depth 6) | ✅ |
+| Instance-based | kNN | — |
+| Kernel-based | SVM | — |
 
-Escolhemos três modelos com princípios diferentes: a regressão logística (linear), o Naive Bayes misto (probabilístico) e a árvore de decisão (árvores). Cada um acaba por olhar os dados de um jeito diferente, são rápidos de treinar e fáceis de interpretar. 
+We chose three models with different principles: logistic regression (linear), mixed Naive Bayes (probabilistic) and the decision tree (trees). Each one ends up looking at the data in a different way, they are quick to train and easy to interpret. 
 
-O kNN e o SVM acabram por ficar de fora devido ao tamanho dos dados: com cerca de 180 000 sessões por treino, o kNN precisaria guardar todas as sessões e comparar cada sessão nova com todas elas, e o SVM acaba por ficar muito lento para treinar. Como o próprio enunciado diz, usar muitos algoritmos sem análise não é melhor do que uma comparação menor e bem justificada.
+kNN and SVM ended up being left out due to the size of the data: with about 180 000 sessions per training, kNN would need to store all the sessions and compare each new session with all of them, and SVM ends up being very slow to train. As the assignment statement itself says, using many algorithms without analysis is not better than a smaller and well-justified comparison.
 
-### 3.3.2 Justificação pelos seis critérios
+### 3.3.2 Justification by the six criteria
 
-A regressão logística foi escolhida pela interpretabilidade, já que os coeficientes mostram o sinal e o tamanho do efeito de cada variável no risco de anomalia. 
+Logistic regression was chosen for the interpretability, since the coefficients show the sign and the size of the effect of each variable on the anomaly risk. 
 
-Já o Naive Bayes misto acaba por ser o modelo mais barato, pois treinar é apenas contar frequências nas categóricas e calcular médias e desvios nas numéricas. 
+As for mixed Naive Bayes, it ends up being the cheapest model, since training is just counting frequencies in the categorical ones and calculating means and deviations in the numeric ones. 
 
-Por dim a árvore de decisão consegue apanhar limiares e interações entre variáveis (por exemplo, local × histórico do posto) sem precisar de escala.
+Finally the decision tree can capture thresholds and interactions between variables (for example, location × station history) without needing scaling.
 
-O pressuposto de independência do Naive Bayes acaba por ser violado aqui, o que aparece nas probabilidades extremas (72%, tabela 3.3.4).
+The independence assumption of Naive Bayes ends up being violated here, which appears in the extreme probabilities (72%, table 3.3.4).
 
-### 3.3.3 Profundidade da árvore
+### 3.3.3 Tree depth
 
-Tabela 3.3.3 — Árvore de decisão no G3 com várias profundidades
+Table 3.3.3 — Decision tree on G3 with several depths
 
-| `max_depth` | Treino (média) | Fold 1 | Fold 2 | Fold 3 | Média | Desvio | Pior fold | Folds > regra |
+| `max_depth` | Training (mean) | Fold 1 | Fold 2 | Fold 3 | Mean | Deviation | Worst fold | Folds > rule |
 |---|---|---|---|---|---|---|---|---|
 | 3 | 0,505 | 0,437 | 0,568 | 0,544 | 0,516 | 0,070 | 0,437 | 0 |
 | 4 | 0,542 | 0,469 | 0,602 | 0,582 | 0,551 | 0,072 | 0,469 | 1 |
@@ -682,244 +682,244 @@ Tabela 3.3.3 — Árvore de decisão no G3 com várias profundidades
 | 8 | 0,599 | 0,504 | 0,637 | 0,585 | 0,575 | 0,067 | 0,504 | 2 |
 | 10 | 0,621 | 0,485 | 0,611 | 0,561 | 0,552 | 0,063 | 0,485 | 2 |
 | 12 | 0,652 | 0,433 | 0,554 | 0,522 | 0,503 | 0,063 | 0,433 | 0 |
-| Sem limite | 1,000 | 0,199 | 0,274 | 0,276 | 0,249 | 0,044 | 0,199 | 0 |
+| No limit | 1,000 | 0,199 | 0,274 | 0,276 | 0,249 | 0,044 | 0,199 | 0 |
 
-A profundidade da árvore foi escolhida na validação, testando vários valores e vendo qual tinha o melhor resultado nos folds. Com profundidade 3 e 4, a AUC-PR é baixa tanto no treino como na validação, ou seja, a árvore é simples demais (underfitting). A partir da 8, o treino continua a subir, mas a validação acaba por cair, o que indica overfitting. A 6 e a 8 ficam praticamente empatadas na média (0,578 e 0,575) e no pior fold, mas só a 6 passa a regra nos 3 folds, que é o critério do protocolo, por isso escolhemos a 6.
+The depth of the tree was chosen on the validation, testing several values and seeing which had the best result in the folds. With depth 3 and 4, the AUC-PR is low both in the training and in the validation, that is, the tree is too simple (underfitting). From 8 on, the training keeps rising, but the validation ends up dropping, which indicates overfitting. 6 and 8 are practically tied on the mean (0,578 and 0,575) and on the worst fold, but only 6 beats the rule in the 3 folds, which is the protocol criterion, so we chose 6.
 
-A árvore sem limite cai para 0,249 muito provavelmente por decorar o treino. A limitação é que a profundidade foi escolhida nos mesmos folds onde depois comparamos os modelos, o que pode deixar a árvore um pouco favorecida.
+The tree without limit drops to 0,249 most probably because it memorizes the training. The limitation is that the depth was chosen on the same folds where we later compare the models, which may leave the tree a bit favored.
 
-### 3.3.4 Naive Bayes: versão gaussiana e versão mista
+### 3.3.4 Naive Bayes: Gaussian version and mixed version
 
-Tabela 3.3.4 — Naive Bayes no G3: versão gaussiana (antiga) e versão mista
+Table 3.3.4 — Naive Bayes on G3: Gaussian version (old) and mixed version
 
-| Versão | Fold 1 | Fold 2 | Fold 3 | Média | Desvio | Pior fold | Folds > regra | Prob. extremas (fold 3) |
+| Version | Fold 1 | Fold 2 | Fold 3 | Mean | Deviation | Worst fold | Folds > rule | Extreme prob. (fold 3) |
 |---|---|---|---|---|---|---|---|---|
-| GaussianNB (one-hot + normal em todas as colunas) | 0,444 | 0,586 | 0,566 | 0,532 | 0,077 | 0,444 | 0 | 76,8% |
-| NB misto (categóricas por frequências, numéricas pela normal) | 0,479 | 0,601 | 0,573 | 0,551 | 0,064 | 0,479 | 1 | 72,0% |
-| NB misto sem `tariff_period` | 0,479 | 0,601 | 0,573 | 0,551 | 0,064 | 0,479 | 1 | 71,9% |
+| GaussianNB (one-hot + normal on all columns) | 0,444 | 0,586 | 0,566 | 0,532 | 0,077 | 0,444 | 0 | 76,8% |
+| Mixed NB (categorical by frequencies, numeric by the normal) | 0,479 | 0,601 | 0,573 | 0,551 | 0,064 | 0,479 | 1 | 72,0% |
+| Mixed NB without `tariff_period` | 0,479 | 0,601 | 0,573 | 0,551 | 0,064 | 0,479 | 1 | 71,9% |
 
-Na versão gaussiana, todas as colunas eram tratadas como números com distribuição normal, até as categóricas, que só valem 0 ou 1. Por isso passamos para o NB misto, onde as categóricas usam frequências e as numéricas continuam com a normal. Com isso, a AUC-PR média subiu de 0,532 para 0,551 nas médias.
+In the Gaussian version, all the columns were treated as numbers with normal distribution, even the categorical ones, which are only worth 0 or 1. That is why we moved to the mixed NB, where the categorical ones use frequencies and the numeric ones continue with the normal. With this, the mean AUC-PR rose from 0,532 to 0,551 in the means.
 
-Mesmo assim, 72% das probabilidades continuam extremas (abaixo de 1% ou acima de 99%), e tirar a tarifa não muda nada. Logo, o problema acaba por ser o pressuposto de independência: as variáveis do posto estão correlacionadas e o modelo conta a mesma informação várias vezes.
+Even so, 72% of the probabilities remain extreme (below 1% or above 99%), and removing the tariff changes nothing. Therefore, the problem ends up being the independence assumption: the station variables are correlated and the model counts the same information several times.
 
-OBS: Prob. extremas = percentagem de probabilidades abaixo de 1% ou acima de 99% na validação do fold 3. Na regressão logística é 0,3%.
+NOTE: Extreme prob. = percentage of probabilities below 1% or above 99% in the validation of fold 3. In logistic regression it is 0,3%.
 
-### 3.3.5 Resultados
+### 3.3.5 Results
 
-Tabela 3.3.5 — Modelos individuais no G3
+Table 3.3.5 — Individual models on G3
 
-| Modelo | Fold 1 | Fold 2 | Fold 3 | Média | Desvio | Pior fold | Folds > regra |
+| Model | Fold 1 | Fold 2 | Fold 3 | Mean | Deviation | Worst fold | Folds > rule |
 |---|---|---|---|---|---|---|---|
 | No-skill | 0,158 | 0,197 | 0,210 | 0,188 | 0,027 | 0,158 | — |
-| Regra | 0,450 | 0,602 | 0,590 | 0,548 | 0,084 | 0,450 | — |
-| Regressão logística | 0,506 | 0,636 | 0,617 | 0,586 | 0,070 | 0,506 | 3 |
-| Naive Bayes misto | 0,479 | 0,601 | 0,573 | 0,551 | 0,064 | 0,479 | 1 |
-| Árvore de decisão (profundidade 6) | 0,503 | 0,626 | 0,606 | 0,578 | 0,066 | 0,503 | 3 |
+| Rule | 0,450 | 0,602 | 0,590 | 0,548 | 0,084 | 0,450 | — |
+| Logistic regression | 0,506 | 0,636 | 0,617 | 0,586 | 0,070 | 0,506 | 3 |
+| Mixed Naive Bayes | 0,479 | 0,601 | 0,573 | 0,551 | 0,064 | 0,479 | 1 |
+| Decision tree (depth 6) | 0,503 | 0,626 | 0,606 | 0,578 | 0,066 | 0,503 | 3 |
 
-Entre os modelos individuais, a regressão logística acaba por ser a melhor (0,586 de média), seguida da árvore (0,578) e do Naive Bayes (0,551). A LR e a árvore passam a regra nos 3 folds. Já o NB, apesar de ter média um pouco acima da regra (0,551 contra 0,548), perde para ela em 2 folds. Pelo critério do protocolo da Task 2, que pede para passar a regra em todos os folds, o NB acaba por não ser considerado um bom modelo para nossos dados.
+Among the individual models, logistic regression ends up being the best (0,586 mean), followed by the tree (0,578) and Naive Bayes (0,551). LR and the tree beat the rule in the 3 folds. As for NB, despite having a mean slightly above the rule (0,551 against 0,548), it loses to it in 2 folds. By the criterion of the Task 2 protocol, which asks to beat the rule in all folds, NB ends up not being considered a good model for our data.
 
-### 3.3.6 Interpretação dos modelos
+### 3.3.6 Interpretation of the models
 
 
-Tabela 3.3.6a — Regressão logística (G3, modelo do fold 3): os 10 coeficientes maiores em valor absoluto
+Table 3.3.6a — Logistic regression (G3, fold 3 model): the 10 largest coefficients in absolute value
 
-| Variável (depois do pré-processamento) | Coeficiente |
+| Variable (after preprocessing) | Coefficient |
 |---|---|
-| `post_previous_abnormal_rate_1D` (escala) | +0,932 |
-| `post_previous_abnormal_1D` (log + escala) | −0,804 |
+| `post_previous_abnormal_rate_1D` (scale) | +0,932 |
+| `post_previous_abnormal_1D` (log + scale) | −0,804 |
 | `Location Information` = Technology Park | −0,582 |
-| `post_hours_since_previous_completed_abnormal` (log + escala) | −0,573 |
-| `post_previous_abnormal_rate_7D` (escala) | +0,421 |
+| `post_hours_since_previous_completed_abnormal` (log + scale) | −0,573 |
+| `post_previous_abnormal_rate_7D` (scale) | +0,421 |
 | `Location Information` = Tourist Attraction | +0,293 |
-| `post_previous_sessions_1D` (escala) | +0,293 |
+| `post_previous_sessions_1D` (scale) | +0,293 |
 | `Location Information` = Park A | +0,228 |
 | `Location Information` = Industrial Park | −0,226 |
 | `Location Information` = Shopping Mall | +0,217 |
 
-Tabela 3.3.6b — Árvore de decisão (G3, profundidade 6, modelo do fold 3): variáveis mais importantes
+Table 3.3.6b — Decision tree (G3, depth 6, fold 3 model): most important variables
 
-| Variável | Importância |
+| Variable | Importance |
 |---|---|
 | `post_previous_abnormal_rate_7D` | 0,557 |
 | `post_hours_since_previous_completed_abnormal` | 0,171 |
 | `post_previous_abnormal_rate_1D` | 0,149 |
 | `post_previous_abnormal_rate_30D` | 0,104 |
 | `Location Information` = Bus Station | 0,003 |
-| Cada uma das restantes variáveis | < 0,002 |
-| Soma das 4 variáveis do posto | 0,982 |
+| Each one of the remaining variables | < 0,002 |
+| Sum of the 4 station variables | 0,982 |
 
-Os dois modelos concordam que o que mais pesa é o histórico do posto, o que bate com a secção 3.2.4: na árvore, as 4 variáveis do posto somam 0,982 da importância, e na LR os maiores coeficientes também são quase todos do posto. A diferença é que a LR se apoia mais na rate_1D, que já era a variável mais correlacionada com o alvo na Task 1. A árvore se apoia mais na rate_7D, que por usar 7 dias acaba por ser mais estável e dar cortes melhores.
+Both models agree that what weighs the most is the station history, which matches section 3.2.4: in the tree, the 4 station variables add up to 0,982 of the importance, and in LR the largest coefficients are also almost all from the station. The difference is that LR relies more on rate_1D, which was already the variable most correlated with the target in Task 1. The tree relies more on rate_7D, which, by using 7 days, ends up being more stable and giving better cuts.
 
-Na LR, a rate_1D e a abnormal_1D têm sinais opostos (+0,932 e −0,804). Isso não quer dizer que mais falhas ontem baixam o risco. Como as duas variáveis estão correlacionadas, o modelo acaba por dividir o efeito entre elas, e por isso os coeficientes devem ser lidos em conjunto, e não um a um.
+In LR, rate_1D and abnormal_1D have opposite signs (+0,932 and −0,804). This does not mean that more failures yesterday lower the risk. Since the two variables are correlated, the model ends up dividing the effect between them, and that is why the coefficients must be read together, and not one by one.
 
 ---
 
-## 3.4 Modelos ensemble
+## 3.4 Ensemble models
 
 
-### 3.4.1 Abordagens e porque podem melhorar os seus modelos base
+### 3.4.1 Approaches and why they can improve their base models
 
-Tabela 3.4.1 — Ensembles avaliados
+Table 3.4.1 — Evaluated ensembles
 
-| Ensemble | Princípio (Aula 5) | Modelos base | Configuração |
+| Ensemble | Principle (Lecture 5) | Base models | Configuration |
 |---|---|---|---|
-| Random Forest | Bagging + sorteio de variáveis em cada divisão | Árvores sem limite de profundidade (`min_samples_leaf=20`), cada uma numa amostra bootstrap | 100 árvores, `class_weight='balanced_subsample'` |
-| HistGradientBoosting | Boosting | Árvores pequenas, treinadas em sequência | Valores por defeito, `class_weight='balanced'`, `early_stopping=False` |
-| Votação soft | Combinação heterogénea e estática | Regressão logística + NB misto + árvore (profundidade 6) | Média das probabilidades; avaliada também sem o NB |
+| Random Forest | Bagging + random selection of variables at each split | Trees without depth limit (`min_samples_leaf=20`), each one on a bootstrap sample | 100 trees, `class_weight='balanced_subsample'` |
+| HistGradientBoosting | Boosting | Small trees, trained in sequence | Default values, `class_weight='balanced'`, `early_stopping=False` |
+| Soft voting | Heterogeneous and static combination | Logistic regression + mixed NB + tree (depth 6) | Mean of the probabilities; also evaluated without the NB |
 
-A Random Forest junta 100 árvores, cada uma treinada numa amostra diferente do treino (bagging), e faz a média das previsões. Ela acaba por reduzir a variância, que é o principal problema de uma árvore sozinha, já que pequenas mudanças nos dados mudam muito a árvore. O sorteio de variáveis em cada divisão serve para as árvores ficarem diferentes entre si. Sem ele, todas começariam pela rate_7D e acabariam parecidas, e a média não ajudaria tanto.
+Random Forest combines 100 trees, each one trained on a different sample of the training (bagging), and averages the predictions. It ends up reducing the variance, which is the main problem of a single tree, since small changes in the data change the tree a lot. The random selection of variables at each split serves to make the trees different from each other. Without it, all of them would start with rate_7D and would end up similar, and the mean would not help as much.
 
-O HistGB treina árvores pequenas em sequência, e cada uma tenta corrigir os erros das anteriores (boosting), o que acaba por reduzir o viés. O early_stopping ficou desligado porque, por defeito, ele separa 10% aleatório do treino para decidir quando parar, o que acabaria por misturar o futuro com o passado. O HistGB não está nos slides, mas funciona como o LightGBM: agrupa os valores em intervalos, o que o deixa rápido com 180 mil sessões.
+HistGB trains small trees in sequence, and each one tries to correct the errors of the previous ones (boosting), which ends up reducing the bias. early_stopping was turned off because, by default, it separates a random 10% of the training to decide when to stop, which would end up mixing the future with the past. HistGB is not in the slides, but it works like LightGBM: it groups the values into intervals, which makes it fast with 180 thousand sessions.
 
-A votação faz a média das probabilidades da LR, do NB e da árvore. Para ajudar, os modelos precisam de ser bons sozinhos e de errar em sessões diferentes. Como os três têm princípios diferentes, esperávamos alguma diversidade, mas todos se apoiam principalmente no histórico do posto, então acabam por errar em sessões parecidas. Além disso, o NB, com probabilidades muito extremas, pode acabar por atrapalhar.
+The voting averages the probabilities of LR, NB and the tree. To help, the models need to be good on their own and to err on different sessions. Since the three have different principles, we expected some diversity, but all of them rely mainly on the station history, so they end up erring on similar sessions. In addition, NB, with very extreme probabilities, may end up getting in the way.
 
-### 3.4.2 Resultados: os ensembles melhoram os seus modelos base?
+### 3.4.2 Results: do the ensembles improve their base models?
 
-**Tabela 3.4.2a** — Ensembles no G3
+**Table 3.4.2a** — Ensembles on G3
 
-| Ensemble | Fold 1 | Fold 2 | Fold 3 | Média | Desvio | Pior fold | Folds > regra |
+| Ensemble | Fold 1 | Fold 2 | Fold 3 | Mean | Deviation | Worst fold | Folds > rule |
 |---|---|---|---|---|---|---|---|
 | Random Forest | 0,533 | 0,660 | 0,641 | 0,612 | 0,069 | 0,533 | 3 |
 | HistGradientBoosting | 0,538 | 0,661 | 0,642 | 0,613 | 0,066 | 0,538 | 3 |
-| Votação (LR + NB + árvore) | 0,514 | 0,643 | 0,622 | 0,593 | 0,070 | 0,514 | 3 |
-| Votação sem o NB (LR + árvore) | 0,524 | 0,650 | 0,628 | 0,601 | 0,067 | 0,524 | 3 |
+| Voting (LR + NB + tree) | 0,514 | 0,643 | 0,622 | 0,593 | 0,070 | 0,514 | 3 |
+| Voting without the NB (LR + tree) | 0,524 | 0,650 | 0,628 | 0,601 | 0,067 | 0,524 | 3 |
 
-**Tabela 3.4.2b** — Diferença de AUC-PR entre cada ensemble e os seus modelos base (positivo = o ensemble é melhor)
+**Table 3.4.2b** — AUC-PR difference between each ensemble and its base models (positive = the ensemble is better)
 
-| Comparação | Fold 1 | Fold 2 | Fold 3 |
+| Comparison | Fold 1 | Fold 2 | Fold 3 |
 |---|---|---|---|
-| Random Forest − árvore (prof. 6) | +0,0302 | +0,0344 | +0,0354 |
-| HistGB − árvore (prof. 6) | +0,0347 | +0,0347 | +0,0355 |
+| Random Forest − tree (depth 6) | +0,0302 | +0,0344 | +0,0354 |
+| HistGB − tree (depth 6) | +0,0347 | +0,0347 | +0,0355 |
 | HistGB − Random Forest | +0,0045 | +0,0003 | +0,0001 |
-| Votação − LR | +0,0073 | +0,0070 | +0,0053 |
-| Votação − NB misto | +0,0347 | +0,0423 | +0,0493 |
-| Votação − árvore (prof. 6) | +0,0104 | +0,0174 | +0,0160 |
-| Votação sem NB − LR | +0,0175 | +0,0136 | +0,0112 |
-| Votação sem NB − árvore (prof. 6) | +0,0207 | +0,0240 | +0,0220 |
-| Votação sem NB − Votação | +0,0102 | +0,0066 | +0,0060 |
+| Voting − LR | +0,0073 | +0,0070 | +0,0053 |
+| Voting − mixed NB | +0,0347 | +0,0423 | +0,0493 |
+| Voting − tree (depth 6) | +0,0104 | +0,0174 | +0,0160 |
+| Voting without NB − LR | +0,0175 | +0,0136 | +0,0112 |
+| Voting without NB − tree (depth 6) | +0,0207 | +0,0240 | +0,0220 |
+| Voting without NB − Voting | +0,0102 | +0,0066 | +0,0060 |
 
-Todos os ensembles acabam por ser melhores do que os seus modelos base nos 3 folds (tabela 3.4.2b). A Random Forest e o HistGB ganham cerca de +0,03 da melhor árvore individual, e ficam praticamente empatados entre si. Isso é interessante na Random Forest, porque ela é feita de árvores mais profundas, que sozinhas acabariam por fazer overfitting (tabela 3.3.3). Ou seja, o bagging acaba por corrigir esse problema.
+All the ensembles end up being better than their base models in the 3 folds (table 3.4.2b). Random Forest and HistGB gain about +0,03 over the best individual tree, and are practically tied with each other. This is interesting in the Random Forest, because it is made of deeper trees, which alone would end up overfitting (table 3.3.3). That is, bagging ends up correcting this problem.
 
-Na votação, tirar o NB melhora o resultado nos 3 folds. Isso acontece porque o NB tem probabilidades muito extremas e, como não usa class_weight='balanced', fica numa escala diferente da LR e da árvore, puxando demais a média. Mesmo sem o NB, a votação não chega à Random Forest nem ao HistGB, porque junta só dois ou três modelos mais fracos, que erram em sessões parecidas.
+In the voting, removing the NB improves the result in the 3 folds. This happens because NB has very extreme probabilities and, since it does not use class_weight='balanced', it is on a different scale from LR and the tree, pulling the mean too much. Even without the NB, the voting does not reach the Random Forest or the HistGB, because it combines only two or three weaker models, which err on similar sessions.
 
 ### 3.4.3 Stacking
 
-Acabamos por não usar stacking. Para usar sem leakage, os modelos base teriam de ser treinados num período mais antigo e o meta-modelo no período seguinte, sempre antes da validação. O StackingClassifier normal, com cv=5, não serve, porque divide os dados de forma aleatória e acabaria por misturar o futuro com o passado.
+We ended up not using stacking. To use it without leakage, the base models would have to be trained on an older period and the meta-model on the following period, always before the validation. The normal StackingClassifier, with cv=5, does not work, because it splits the data randomly and would end up mixing the future with the past.
 
 ---
 
-## 3.5 Comparação final
+## 3.5 Final comparison
 
-**Tabela 3.5a** — Todos os modelos no G3, por ordem da média
+**Table 3.5a** — All the models on G3, in order of the mean
 
-| Modelo | Tipo | Fold 1 | Fold 2 | Fold 3 | Média | Desvio | Pior fold | Folds > regra |
+| Model | Type | Fold 1 | Fold 2 | Fold 3 | Mean | Deviation | Worst fold | Folds > rule |
 |---|---|---|---|---|---|---|---|---|
 | HistGradientBoosting | Ensemble | 0,538 | 0,661 | 0,642 | 0,613 | 0,066 | 0,538 | 3 |
 | Random Forest | Ensemble | 0,533 | 0,660 | 0,641 | 0,612 | 0,069 | 0,533 | 3 |
-| Votação sem o NB | Ensemble | 0,524 | 0,650 | 0,628 | 0,601 | 0,067 | 0,524 | 3 |
-| Votação (LR + NB + árvore) | Ensemble | 0,514 | 0,643 | 0,622 | 0,593 | 0,070 | 0,514 | 3 |
-| Regressão logística | Individual | 0,506 | 0,636 | 0,617 | 0,586 | 0,070 | 0,506 | 3 |
-| Árvore de decisão (prof. 6) | Individual | 0,503 | 0,626 | 0,606 | 0,578 | 0,066 | 0,503 | 3 |
-| Naive Bayes misto | Individual | 0,479 | 0,601 | 0,573 | 0,551 | 0,064 | 0,479 | 1 |
-| Regra | Baseline | 0,450 | 0,602 | 0,590 | 0,548 | 0,084 | 0,450 | — |
+| Voting without the NB | Ensemble | 0,524 | 0,650 | 0,628 | 0,601 | 0,067 | 0,524 | 3 |
+| Voting (LR + NB + tree) | Ensemble | 0,514 | 0,643 | 0,622 | 0,593 | 0,070 | 0,514 | 3 |
+| Logistic regression | Individual | 0,506 | 0,636 | 0,617 | 0,586 | 0,070 | 0,506 | 3 |
+| Decision tree (depth 6) | Individual | 0,503 | 0,626 | 0,606 | 0,578 | 0,066 | 0,503 | 3 |
+| Mixed Naive Bayes | Individual | 0,479 | 0,601 | 0,573 | 0,551 | 0,064 | 0,479 | 1 |
+| Rule | Baseline | 0,450 | 0,602 | 0,590 | 0,548 | 0,084 | 0,450 | — |
 | No-skill | Baseline | 0,158 | 0,197 | 0,210 | 0,188 | 0,027 | 0,158 | — |
 
-**Tabela 3.5b** — Diferença para a regra em cada fold (positivo = melhor do que a regra)
+**Table 3.5b** — Difference to the rule in each fold (positive = better than the rule)
 
-| Modelo | Fold 1 | Fold 2 | Fold 3 |
+| Model | Fold 1 | Fold 2 | Fold 3 |
 |---|---|---|---|
 | HistGradientBoosting | +0,087 | +0,058 | +0,051 |
 | Random Forest | +0,083 | +0,058 | +0,051 |
-| Votação sem o NB | +0,073 | +0,048 | +0,038 |
-| Votação (LR + NB + árvore) | +0,063 | +0,041 | +0,032 |
-| Regressão logística | +0,056 | +0,034 | +0,027 |
-| Árvore de decisão (prof. 6) | +0,053 | +0,024 | +0,016 |
-| Naive Bayes misto | +0,028 | −0,001 | −0,017 |
+| Voting without the NB | +0,073 | +0,048 | +0,038 |
+| Voting (LR + NB + tree) | +0,063 | +0,041 | +0,032 |
+| Logistic regression | +0,056 | +0,034 | +0,027 |
+| Decision tree (depth 6) | +0,053 | +0,024 | +0,016 |
+| Mixed Naive Bayes | +0,028 | −0,001 | −0,017 |
 
-No fim, os ensembles acabam por ficar à frente dos modelos individuais, com o HistGB (0,613) e a Random Forest (0,612) no topo. Todos os modelos passam a regra nos 3 folds, menos o NB, que tem média um pouco acima da regra mas perde para ela em 2 folds. 
+In the end, the ensembles end up ahead of the individual models, with HistGB (0,613) and Random Forest (0,612) at the top. All the models beat the rule in the 3 folds, except NB, which has a mean slightly above the rule but loses to it in 2 folds. 
 
-Isso mostra que olhar só para a média não chega. O HistGB e a Random Forest ficam praticamente empatados: o HistGB ganha nos 3 folds, mas por muito pouco (tabela 3.4.2b). Pelo protocolo da Task 2, o HistGB fica em primeiro por ter a média e o pior fold um pouco melhores, mas como a diferença é muito pequena, os dois seguem para a próxima etapa (afinação, threshold e avaliação final).
-
----
-
-## 3.6 Limitações
-
-Escolhas feitas nos mesmos folds da comparação: a profundidade da árvore, a versão do NB e a votação sem o NB foram escolhidas olhando para a validação dos mesmos folds onde depois comparamos os modelos. Isso pode deixar esses modelos um pouco favorecidos, já que acabaram por ser ajustados para esses períodos. O ideal seria escolher num período separado, mas com apenas 3 folds isso deixaria menos dados para a comparação.
-
-Sem teste estatístico: com apenas 3 folds, o teste de Wilcoxon nunca consegue dar significativo, porque o menor p-valor possível é 0,25. Por isso, a comparação acaba por ser feita pela consistência fold a fold (o modelo ganha nos 3 folds ou não?). Diferenças muito pequenas, como a entre o HistGB e a Random Forest, não podem ser consideradas uma diferença real.
-
-Poucas sessões de frota: a análise das frotas usa apenas 2 contas e poucas sessões, então a AUC-PR desse subgrupo pode mudar bastante com poucas sessões a mais ou a menos. Não dá para tirar conclusões fortes dela.
-
-Probabilidades do NB mal calibradas: 72% das probabilidades do NB ficam abaixo de 1% ou acima de 99%, por isso não podem ser lidas como o risco real de uma sessão. É também por isso que o NB atrapalha a votação.
-
-Ensembles sem afinação: a Random Forest e o HistGB ainda usam os valores por defeito, mudando apenas o class_weight e o early_stopping. Os resultados podem melhorar com a afinação, e a ordem entre os dois pode mudar. Isso fica para a próxima etapa.
-
-Falhas do carro no histórico do posto: algumas falhas, como as de BMS ou Vehicle charging faults, vêm do carro e não do posto, mas acabam por contar no histórico do posto. Essa divisão foi feita só pelo nome de cada motivo e não foi verificada.
-
+This shows that looking only at the mean is not enough. HistGB and Random Forest are practically tied: HistGB wins in the 3 folds, but by very little (table 3.4.2b). By the Task 2 protocol, HistGB comes first for having a slightly better mean and worst fold, but since the difference is very small, both go on to the next step (tuning, threshold and final evaluation).
 
 ---
 
-# Task 4 — Optimização de hiperparâmetros e validação cruzada
+## 3.6 Limitations
 
-## 4.1 Hiperparâmetros escolhidos
+Choices made on the same folds as the comparison: the depth of the tree, the NB version and the voting without the NB were chosen by looking at the validation of the same folds where we later compare the models. This may leave these models a bit favored, since they ended up being tuned to these periods. The ideal would be to choose on a separate period, but with only 3 folds this would leave less data for the comparison.
 
-Tabela 4.1 — Melhores hiperparâmetros no G3, procurados nos 3 folds temporais da Task 2 com o F1 como pontuação
+No statistical test: with only 3 folds, the Wilcoxon test can never give significant, because the smallest possible p-value is 0,25. Therefore, the comparison ends up being made by the fold-by-fold consistency (does the model win in the 3 folds or not?). Very small differences, such as the one between HistGB and Random Forest, cannot be considered a real difference.
 
-| Modelo | Busca | Melhores hiperparâmetros | F1 (média nos folds) |
+Few fleet sessions: the fleet analysis uses only 2 accounts and few sessions, so the AUC-PR of this subgroup can change a lot with a few sessions more or less. It is not possible to draw strong conclusions from it.
+
+Poorly calibrated NB probabilities: 72% of the NB probabilities are below 1% or above 99%, so they cannot be read as the real risk of a session. That is also why NB gets in the way of the voting.
+
+Ensembles without tuning: Random Forest and HistGB still use the default values, changing only class_weight and early_stopping. The results may improve with tuning, and the order between the two may change. This is left for the next step.
+
+Car failures in the station history: some failures, such as the BMS ones or Vehicle charging faults, come from the car and not from the station, but end up counting in the station history. This division was made only by the name of each reason and was not verified.
+
+
+---
+
+# Task 4 — Hyperparameter optimization and cross-validation
+
+## 4.1 Chosen hyperparameters
+
+Table 4.1 — Best hyperparameters on G3, searched on the 3 temporal folds of Task 2 with F1 as the score
+
+| Model | Search | Best hyperparameters | F1 (mean across the folds) |
 |---|---|---|---|
-| Random Forest | `RandomizedSearchCV`, 10 combinações | `n_estimators=500`, `max_depth=None`, `min_samples_split=2`, `max_features='sqrt'` | nan (as 30 fits falharam por falta de memória) |
-| HistGradientBoosting | `BayesSearchCV`, 40 iterações | `learning_rate=0,037`, `max_depth=None`, `max_iter=393`, `min_samples_leaf=20` | 0,5243 |
+| Random Forest | `RandomizedSearchCV`, 10 combinations | `n_estimators=500`, `max_depth=None`, `min_samples_split=2`, `max_features='sqrt'` | nan (the 30 fits failed due to lack of memory) |
+| HistGradientBoosting | `BayesSearchCV`, 40 iterations | `learning_rate=0,037`, `max_depth=None`, `max_iter=393`, `min_samples_leaf=20` | 0,5243 |
 
-## 4.2 Comparação dos thresholds
+## 4.2 Comparison of the thresholds
 
-Tabela 4.2 — Métricas nas previsões OOF das 3 validações, com o threshold padrão (0,50) e com o threshold que maximiza o F1 (procurado de 0,05 a 0,95, de 0,01 em 0,01)
+Table 4.2 — Metrics on the OOF predictions of the 3 validations, with the default threshold (0,50) and with the threshold that maximizes F1 (searched from 0,05 to 0,95, in steps of 0,01)
 
-| Modelo | Threshold | Precision | Recall | F1 | Taxa de alertas | Alertas corretos / 1 000 | Alertas falsos / 1 000 | Anomalias perdidas / 1 000 |
+| Model | Threshold | Precision | Recall | F1 | Alert rate | Correct alerts / 1 000 | False alerts / 1 000 | Missed anomalies / 1 000 |
 |---|---|---|---|---|---|---|---|---|
 | Random Forest | 0,50 | 0,7936 | 0,3268 | 0,4629 | 7,76% | 61,55 | 16,01 | 126,81 |
 | Random Forest | 0,29 | 0,5723 | 0,5263 | 0,5484 | 17,32% | 99,14 | 74,08 | 89,21 |
 | HistGradientBoosting | 0,50 | 0,4293 | 0,6873 | 0,5285 | 30,15% | 129,46 | 172,08 | 58,89 |
 | HistGradientBoosting | 0,63 | 0,5710 | 0,5455 | 0,5580 | 17,99% | 102,74 | 77,19 | 85,61 |
 
-## 4.3 Análise dos resultados
+## 4.3 Analysis of the results
 
-- O **HistGradientBoosting com threshold otimizado (0,63)** apresenta o melhor desempenho global, com **F1-score de 0,5580**.
-- A otimização do threshold melhorou o F1-score de ambos os modelos:
+- **HistGradientBoosting with optimized threshold (0,63)** presents the best overall performance, with an **F1-score of 0,5580**.
+- The threshold optimization improved the F1-score of both models:
 	- Random Forest: **0,4629 → 0,5484**
 	- HistGradientBoosting: **0,5285 → 0,5580**
-- No HistGradientBoosting, aumentar o threshold de **0,50 para 0,63** reduziu significativamente os falsos alertas (**172,08 → 77,19 por 1.000 sessões**), mantendo um recall razoável (**0,5455**).
-- O threshold padrão do HistGradientBoosting oferece o maior recall (**0,6873**), mas gera muitos falsos alertas e apresenta menor precisão.
-- O Random Forest otimizado tem desempenho equilibrado, mas fica ligeiramente abaixo do HistGradientBoosting otimizado.
-- Assim, o modelo recomendado é o **HistGradientBoosting com threshold 0,63**, por apresentar o maior F1-score e um compromisso mais adequado entre deteção de anomalias e número de falsos alertas.
+- In HistGradientBoosting, increasing the threshold from **0,50 to 0,63** significantly reduced the false alerts (**172,08 → 77,19 per 1.000 sessions**), while maintaining a reasonable recall (**0,5455**).
+- The default threshold of HistGradientBoosting offers the highest recall (**0,6873**), but generates many false alerts and presents lower precision.
+- The optimized Random Forest has balanced performance, but stays slightly below the optimized HistGradientBoosting.
+- Thus, the recommended model is **HistGradientBoosting with threshold 0,63**, for presenting the highest F1-score and a more adequate trade-off between anomaly detection and number of false alerts.
 
-Os resultados foram calculados sobre as previsões OOF temporais; portanto, o threshold otimizado deve ser posteriormente confirmado num conjunto de teste temporal independente.
+The results were calculated on the temporal OOF predictions; therefore, the optimized threshold should later be confirmed on an independent temporal test set.
 
 ---
 
-# Task 5 — Seleção final do modelo
+# Task 5 — Final model selection
 
-## 5.1 Avaliação no teste final
+## 5.1 Evaluation on the final test
 
-Tabela 5.1 — HistGradientBoosting (threshold 0,63) e baseline no-skill no teste final (os 20% de sessões mais recentes, 88 216 sessões)
+Table 5.1 — HistGradientBoosting (threshold 0,63) and no-skill baseline on the final test (the most recent 20% of sessions, 88 216 sessions)
 
-| Modelo | PR-AUC | Precision | Recall | F1 | Balanced accuracy | MCC | Taxa de alertas | Alertas corretos / 1 000 | Alertas falsos / 1 000 | Anomalias perdidas / 1 000 |
+| Model | PR-AUC | Precision | Recall | F1 | Balanced accuracy | MCC | Alert rate | Correct alerts / 1 000 | False alerts / 1 000 | Missed anomalies / 1 000 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Baseline (no-skill) | 0,1810 | 0,0000 | 0,0000 | 0,0000 | 0,5000 | 0,0000 | 0,00% | 0,00 | 0,00 | 181,00 |
 | HistGradientBoosting (threshold 0,63) | 0,3223 | 0,4898 | 0,4577 | 0,4732 | 0,6762 | 0,3619 | 16,91% | 82,84 | 86,30 | 98,16 |
 
-## 5.2 Análise dos resultados
+## 5.2 Analysis of the results
 
-O **HistGradientBoosting com threshold otimizado** apresenta desempenho claramente superior ao baseline:
+**HistGradientBoosting with optimized threshold** presents clearly superior performance to the baseline:
 
-- O modelo identifica **45,77% das sessões anormais** (*recall*).
-- Entre os alertas emitidos, **48,98% são realmente anomalias** (*precision*).
-- Em cada 1.000 sessões, gera aproximadamente:
-    - **82,8 alertas corretos**;
-    - **86,3 falsos alertas**;
-    - **98,2 anomalias não detetadas**.
-- A taxa de alertas é de **16,91%** das sessões.
-- O *Balanced Accuracy* (**0,6762**) e o MCC (**0,3619**) indicam capacidade preditiva moderada, superior ao acaso.
+- The model identifies **45,77% of the abnormal sessions** (*recall*).
+- Among the alerts issued, **48,98% are really anomalies** (*precision*).
+- In every 1.000 sessions, it generates approximately:
+    - **82,8 correct alerts**;
+    - **86,3 false alerts**;
+    - **98,2 undetected anomalies**.
+- The alert rate is **16,91%** of the sessions.
+- The *Balanced Accuracy* (**0,6762**) and the MCC (**0,3619**) indicate moderate predictive capacity, superior to chance.
 
-O baseline não gera alertas porque a probabilidade estimada (**0,1869**) é inferior ao threshold padrão de 0,5. Por isso, obtém precisão, recall e F1 iguais a zero.
+The baseline does not generate alerts because the estimated probability (**0,1869**) is lower than the default threshold of 0,5. Therefore, it obtains precision, recall and F1 equal to zero.
 
-Assim, o modelo é útil como sistema de triagem, mas ainda deixa escapar cerca de metade das sessões anormais e produz uma quantidade semelhante de falsos alertas.
+Thus, the model is useful as a triage system, but it still lets about half of the abnormal sessions slip through and produces a similar amount of false alerts.
