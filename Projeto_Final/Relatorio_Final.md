@@ -867,7 +867,7 @@ Foram otimizados os modelos **Random Forest** e **HistGradientBoosting**, utiliz
 
 | Modelo | Hiperparâmetro pesquisado |
 |---|---|
-| Random Forest | `min_samples_split` |
+| Random Forest | `min_samples_leaf` |
 | HistGradientBoosting | `learning_rate` |
 
 As configurações finais foram escolhidas pelo melhor F1-score médio nas divisões temporais.
@@ -881,17 +881,17 @@ Valores positivos na coluna “Variação” indicam melhoria após a otimizaç�
 
 ## 4.2. Seleção do limiar
 
-O limiar foi selecionado a partir de previsões *out-of-fold* temporais, maximizando o F1-score da classe positiva. O valor escolhido foi **0,64** e foi mantido fixo na avaliação final.
+O limiar foi selecionado a partir das previsões *out-of-fold* temporais do **Random Forest otimizado**, maximizando o F1-score da classe positiva. O valor escolhido foi **0,56** e foi mantido fixo na avaliação final.
 
-| Métrica | Limiar 0,50 | Limiar selecionado (0,64) |
+| Métrica | Limiar 0,50 | Limiar selecionado (0,56) |
 |---|---:|---:|
-| Precisão | 0,4246 | 0,5774 |
-| Recall | 0,6914 | 0,5423 |
-| F1-score | 0,5261 | 0,5593 |
-| Taxa de alertas (%) | 30,67% | 17,69% |
-| Alertas corretos por 1 000 sessões | 130,2185 | 102,1368 |
-| Falsos alertas por 1 000 sessões | 176,4628 | 74,7479 |
-| Sessões anormais não detetadas por 1 000 sessões | 58,1345 | 86,2161 |
+| Precisão | 0,5331 | 0,5913 |
+| Recall | 0,5762 | 0,5282 |
+| F1-score | 0,5538 | 0,5579 |
+| Taxa de alertas (%) | 20,36% | 16,82% |
+| Alertas corretos por 1 000 sessões | 108,5353 | 99,4792 |
+| Falsos alertas por 1 000 sessões | 95,0519 | 68,7588 |
+| Sessões anormais não detetadas por 1 000 sessões | 79,8176 | 88,8738 |
 
 A alteração do limiar representa um compromisso entre aumentar a deteção de sessões anormais e limitar os falsos alertas. A escolha final deve considerar tanto o F1-score como o impacto operacional dos alertas.
 
@@ -909,30 +909,49 @@ As importâncias indicam associações utilizadas pelo modelo e não relações 
 
 ---
 
-# Task 5 — Final model selection
+# Task 5 — Final model selection and evaluation
 
 ## 5.1 Evaluation on the final test
 
-Table 5.1 — HistGradientBoosting (threshold 0,63) and no-skill baseline on the final test (the most recent 20% of sessions, 88 216 sessions)
+Table 5.1 — Final test (the most recent 20% of the sessions, 88 216 sessions)
 
-| Model | PR-AUC | Precision | Recall | F1 | Balanced accuracy | MCC | Alert rate | Correct alerts / 1 000 | False alerts / 1 000 | Missed anomalies / 1 000 |
+| Model | AUC-PR | Precision | Recall | F1 | Balanced accuracy | MCC | Alert rate | Correct alerts / 1 000 | False alerts / 1 000 | Missed anomalies / 1 000 |
 |---|---|---|---|---|---|---|---|---|---|---|
 | Baseline (no-skill) | 0,1810 | 0,0000 | 0,0000 | 0,0000 | 0,5000 | 0,0000 | 0,00% | 0,00 | 0,00 | 181,00 |
-| HistGradientBoosting (threshold 0,63) | 0,3223 | 0,4898 | 0,4577 | 0,4732 | 0,6762 | 0,3619 | 16,91% | 82,84 | 86,30 | 98,16 |
+| Rule (post_previous_abnormal_rate_1D) | 0,4449 | — | — | — | — | — | — | — | — | — |
+| Random Forest (threshold 0,56) | 0,5075 | 0,5070 | 0,4392 | 0,4706 | 0,6724 | 0,3651 | 15,68% | 79,49 | 77,30 | 101,51 |
 
-## 5.2 Analysis of the results
+The final model is the optimized Random Forest of Task 4 (G3, `min_samples_leaf=10`), with the threshold 0,56 chosen with the out-of-fold predictions of the Random Forest itself. It was trained on the 80% of development and evaluated a single time on the test (from 22/09 to 31/12/2021). The model beats the two baselines: its AUC-PR (0,508) is 0,063 above the rule and 2,8 times the no-skill. It finds 44% of the anomalies and about half of the alerts are correct, against only 18% of abnormal sessions in the test. Even so, the results are lower than in the validation (F1 of 0,558 in Task 4 against 0,471 here).
 
-**HistGradientBoosting with optimized threshold** presents clearly superior performance to the baseline:
+## 5.2 Variation over time and between groups
 
-- The model identifies **45,77% of the abnormal sessions** (*recall*).
-- Among the alerts issued, **48,98% are really anomalies** (*precision*).
-- In every 1.000 sessions, it generates approximately:
-    - **82,8 correct alerts**;
-    - **86,3 false alerts**;
-    - **98,2 undetected anomalies**.
-- The alert rate is **16,91%** of the sessions.
-- The *Balanced Accuracy* (**0,6762**) and the MCC (**0,3619**) indicate moderate predictive capacity, superior to chance.
+Over time, the model is at its best in the last days of September, right after the training (F1 0,583), and gets worse in the following months, with the worst point in November (F1 0,411), which is also the month with the fewest anomalies (16,5%). Since the model is trained only once, it moves away from the period it learned from, as already happened with fold 1 in the validation. Even so, it beats the rule in every month, by 0,05 to 0,07 of AUC-PR. Inside the day the result is more stable: by tariff period the F1 only varies between 0,43 and 0,48.
 
-The baseline does not generate alerts because the estimated probability (**0,1869**) is lower than the default threshold of 0,5. Therefore, it obtains precision, recall and F1 equal to zero.
+Between groups the variation is bigger. In the districts, locations and charging posts with few failures, the model gives few alerts and lets most of the anomalies pass, while in the ones with many failures it finds more anomalies, but also gives many more alerts. That is, the model works well where failures are frequent and poorly where they are rare.
 
-Thus, the model is useful as a triage system, but it still lets about half of the abnormal sessions slip through and produces a similar amount of false alerts.
+## 5.3 Error analysis
+
+The false negatives (8 955) are mostly isolated failures at posts that were working normally: the failure rate of the post in the last 7 days has a median of 16% (against 39% in the anomalies that the model gets right), the last failure happened about 10 hours before and in 24% of the cases the post did not fail on the previous day. Nothing in the station history points to a problem, so the model has no way of anticipating them. The false positives (6 819) appear right after a failure at the same post (median of 7 minutes), in sessions that end up being normal, possibly because the problem was solved or because the previous failure came from the car. They are also concentrated, since 5 posts have 32% of all the false alerts.
+
+## 5.4 Interpretation of the final model
+
+Since the Random Forest is made of 100 trees and has no coefficients, we interpreted it with the impurity importance (Task 4.3) and with the permutation importance, which measures how much the AUC-PR of the test drops when each variable is shuffled (on 20 000 sessions of the test). The two methods agree that the model depends almost only on the station history: the time since the last failure of the post (drop of 0,107) and the failure rate of the last day (0,059) are the most important, while weather, hour, tariff and district are close to zero. This agrees with Task 3, where the station history was by far the group that contributed the most.
+
+This interpretation has its limitations. The two methods do not give the same order, because the impurity favours continuous variables, such as the temperature, and is calculated on the training. The station history variables are also correlated with each other (1, 7 and 30 days), so the importance ends up being split between them. Besides that, the importances are global, so they do not explain why a specific session got an alert, and they show association and not cause, since part of the "station" failures are actually car failures (Task 3.6).
+
+## 5.5 Threshold and operational use
+
+In practice, the threshold 0,56 gives about 138 alerts per day (1,5 per post), of which 70 are correct and 68 are false, and lets about 90 anomalies per day pass. Compared with 0,50, it removes about 26 false alerts per 1 000 sessions. The rule of Task 2 (minimum recall of 70%) would need a threshold of 0,39, with alerts in 1 of every 3 sessions, so 0,56 ends up being a compromise between catching anomalies and not overloading the operators. 
+
+For the use defined in Task 2, that is, monitoring and prioritizing maintenance without blocking the session, the model is useful, because half of the alerts are correct and they concentrate on the posts that really fail more. However, it misses more than half of the anomalies and would not serve to warn the users, since half of the warnings would be unnecessary.
+
+## 5.6 Conclusion
+
+In conclusion, the optimized Random Forest with threshold 0,56 beats the rule and the no-skill in the test and in every month, but it is weaker than in the validation and depends a lot on the period and the post itself, since it mainly learns that failures come in sequence at the same post (that is a normal thing to happen, when the post break, next rechanges in sequence tend to fail). 
+
+The main limitations are the lack of information about the car and the charger, the noise in the target ("User stops charging" as normal and car failures in the station history), the threshold chosen by the F1 and equal for all the posts, and the training with all the 80% instead of the 180 000 sessions planned in Task 2.5. 
+
+As future improvements, we recommend retraining the model every month, trying to add information about the car (harder to do because we needed for the driver to voluntarily give this kind of information) and the charger, using thresholds by group of posts and grouping the alerts by post to reduce the false alerts in sequence.
+
+
+(Relatório e projeto escritos com a ajuda de IA generativa.)
