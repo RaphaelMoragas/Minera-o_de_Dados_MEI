@@ -160,7 +160,7 @@ Acabamos por escolher o G3 para os modelos (já separamos o G4 como o final por 
 
 ### 3.1 Algoritmos escolhidos
 
-**Tabela 3.1** — Princípios de modelação
+Tabela 3.1 — Princípios de modelação
 
 | Princípio | Algoritmo | Usado |
 |---|---|---|
@@ -182,11 +182,11 @@ Já o Naive Bayes misto acaba por ser o modelo mais barato, pois treinar é apen
 
 Por dim a árvore de decisão consegue apanhar limiares e interações entre variáveis (por exemplo, local × histórico do posto) sem precisar de escala.
 
-O guia pergunta qual o pressuposto violado e a resposta acaba por ser o pressuposto de independência do Naive Bayes é violado aqui, o que aparece nas probabilidades extremas (72%, tabela 3.4)
+O pressuposto de independência do Naive Bayes acaba por ser violado aqui, o que aparece nas probabilidades extremas (72%, tabela 3.4).
 
 ### 3.3 Profundidade da árvore
 
-**Tabela 3.3** — Árvore de decisão no G3 com várias profundidades
+Tabela 3.3 — Árvore de decisão no G3 com várias profundidades
 
 | `max_depth` | Treino (média) | Fold 1 | Fold 2 | Fold 3 | Média | Desvio | Pior fold | Folds > regra |
 |---|---|---|---|---|---|---|---|---|
@@ -197,3 +197,183 @@ O guia pergunta qual o pressuposto violado e a resposta acaba por ser o pressupo
 | 10 | 0,621 | 0,485 | 0,611 | 0,561 | 0,552 | 0,063 | 0,485 | 2 |
 | 12 | 0,652 | 0,433 | 0,554 | 0,522 | 0,503 | 0,063 | 0,433 | 0 |
 | Sem limite | 1,000 | 0,199 | 0,274 | 0,276 | 0,249 | 0,044 | 0,199 | 0 |
+
+A profundidade da árvore foi escolhida na validação, testando vários valores e vendo qual tinha o melhor resultado nos folds. Com profundidade 3 e 4, a AUC-PR é baixa tanto no treino como na validação, ou seja, a árvore é simples demais (underfitting). A partir da 8, o treino continua a subir, mas a validação acaba por cair, o que indica overfitting. A 6 e a 8 ficam praticamente empatadas na média (0,578 e 0,575) e no pior fold, mas só a 6 passa a regra nos 3 folds, que é o critério do protocolo, por isso escolhemos a 6.
+
+A árvore sem limite cai para 0,249 muito provavelmente por decorar o treino. A limitação é que a profundidade foi escolhida nos mesmos folds onde depois comparamos os modelos, o que pode deixar a árvore um pouco favorecida.
+
+### 3.4 Naive Bayes: versão gaussiana e versão mista
+
+Tabela 3.4 — Naive Bayes no G3: versão gaussiana (antiga) e versão mista
+
+| Versão | Fold 1 | Fold 2 | Fold 3 | Média | Desvio | Pior fold | Folds > regra | Prob. extremas (fold 3) |
+|---|---|---|---|---|---|---|---|---|
+| GaussianNB (one-hot + normal em todas as colunas) | 0,444 | 0,586 | 0,566 | 0,532 | 0,077 | 0,444 | 0 | 76,8% |
+| NB misto (categóricas por frequências, numéricas pela normal) | 0,479 | 0,601 | 0,573 | 0,551 | 0,064 | 0,479 | 1 | 72,0% |
+| NB misto sem `tariff_period` | 0,479 | 0,601 | 0,573 | 0,551 | 0,064 | 0,479 | 1 | 71,9% |
+
+Na versão gaussiana, todas as colunas eram tratadas como números com distribuição normal, até as categóricas, que só valem 0 ou 1. Por isso passamos para o NB misto, onde as categóricas usam frequências e as numéricas continuam com a normal. Com isso, a AUC-PR média subiu de 0,532 para 0,551 nas médias.
+
+Mesmo assim, 72% das probabilidades continuam extremas (abaixo de 1% ou acima de 99%), e tirar a tarifa não muda nada. Logo, o problema acaba por ser o pressuposto de independência: as variáveis do posto estão correlacionadas e o modelo conta a mesma informação várias vezes.
+
+OBS: Prob. extremas = percentagem de probabilidades abaixo de 1% ou acima de 99% na validação do fold 3. Na regressão logística é 0,3%.
+
+### 3.5 Resultados
+
+Tabela 3.5 — Modelos individuais no G3
+
+| Modelo | Fold 1 | Fold 2 | Fold 3 | Média | Desvio | Pior fold | Folds > regra |
+|---|---|---|---|---|---|---|---|
+| No-skill | 0,158 | 0,197 | 0,210 | 0,188 | 0,027 | 0,158 | — |
+| Regra | 0,450 | 0,602 | 0,590 | 0,548 | 0,084 | 0,450 | — |
+| Regressão logística | 0,506 | 0,636 | 0,617 | 0,586 | 0,070 | 0,506 | 3 |
+| Naive Bayes misto | 0,479 | 0,601 | 0,573 | 0,551 | 0,064 | 0,479 | 1 |
+| Árvore de decisão (profundidade 6) | 0,503 | 0,626 | 0,606 | 0,578 | 0,066 | 0,503 | 3 |
+
+Entre os modelos individuais, a regressão logística acaba por ser a melhor (0,586 de média), seguida da árvore (0,578) e do Naive Bayes (0,551). A LR e a árvore passam a regra nos 3 folds. Já o NB, apesar de ter média um pouco acima da regra (0,551 contra 0,548), perde para ela em 2 folds. Pelo critério do protocolo da Task 2, que pede para passar a regra em todos os folds, o NB acaba por não ser considerado um bom modelo para nossos dados.
+
+### 3.6 Interpretação dos modelos
+
+
+Tabela 3.6a — Regressão logística (G3, modelo do fold 3): os 10 coeficientes maiores em valor absoluto
+
+| Variável (depois do pré-processamento) | Coeficiente |
+|---|---|
+| `post_previous_abnormal_rate_1D` (escala) | +0,932 |
+| `post_previous_abnormal_1D` (log + escala) | −0,804 |
+| `Location Information` = Technology Park | −0,582 |
+| `post_hours_since_previous_completed_abnormal` (log + escala) | −0,573 |
+| `post_previous_abnormal_rate_7D` (escala) | +0,421 |
+| `Location Information` = Tourist Attraction | +0,293 |
+| `post_previous_sessions_1D` (escala) | +0,293 |
+| `Location Information` = Park A | +0,228 |
+| `Location Information` = Industrial Park | −0,226 |
+| `Location Information` = Shopping Mall | +0,217 |
+
+Tabela 3.6b — Árvore de decisão (G3, profundidade 6, modelo do fold 3): variáveis mais importantes
+
+| Variável | Importância |
+|---|---|
+| `post_previous_abnormal_rate_7D` | 0,557 |
+| `post_hours_since_previous_completed_abnormal` | 0,171 |
+| `post_previous_abnormal_rate_1D` | 0,149 |
+| `post_previous_abnormal_rate_30D` | 0,104 |
+| `Location Information` = Bus Station | 0,003 |
+| Cada uma das restantes variáveis | < 0,002 |
+| Soma das 4 variáveis do posto | 0,982 |
+
+Os dois modelos concordam que o que mais pesa é o histórico do posto, o que bate com a secção 2.4: na árvore, as 4 variáveis do posto somam 0,982 da importância, e na LR os maiores coeficientes também são quase todos do posto. A diferença é que a LR se apoia mais na rate_1D, que já era a variável mais correlacionada com o alvo na Task 1. A árvore se apoia mais na rate_7D, que por usar 7 dias acaba por ser mais estável e dar cortes melhores.
+
+Na LR, a rate_1D e a abnormal_1D têm sinais opostos (+0,932 e −0,804). Isso não quer dizer que mais falhas ontem baixam o risco. Como as duas variáveis estão correlacionadas, o modelo acaba por dividir o efeito entre elas, e por isso os coeficientes devem ser lidos em conjunto, e não um a um.
+
+---
+
+## 4. Modelos ensemble
+
+
+### 4.1 Abordagens e porque podem melhorar os seus modelos base
+
+Tabela 4.1 — Ensembles avaliados
+
+| Ensemble | Princípio (Aula 5) | Modelos base | Configuração |
+|---|---|---|---|
+| Random Forest | Bagging + sorteio de variáveis em cada divisão | Árvores sem limite de profundidade (`min_samples_leaf=20`), cada uma numa amostra bootstrap | 100 árvores, `class_weight='balanced_subsample'` |
+| HistGradientBoosting | Boosting | Árvores pequenas, treinadas em sequência | Valores por defeito, `class_weight='balanced'`, `early_stopping=False` |
+| Votação soft | Combinação heterogénea e estática | Regressão logística + NB misto + árvore (profundidade 6) | Média das probabilidades; avaliada também sem o NB |
+
+A Random Forest junta 100 árvores, cada uma treinada numa amostra diferente do treino (bagging), e faz a média das previsões. Ela acaba por reduzir a variância, que é o principal problema de uma árvore sozinha, já que pequenas mudanças nos dados mudam muito a árvore. O sorteio de variáveis em cada divisão serve para as árvores ficarem diferentes entre si. Sem ele, todas começariam pela rate_7D e acabariam parecidas, e a média não ajudaria tanto.
+
+O HistGB treina árvores pequenas em sequência, e cada uma tenta corrigir os erros das anteriores (boosting), o que acaba por reduzir o viés. O early_stopping ficou desligado porque, por defeito, ele separa 10% aleatório do treino para decidir quando parar, o que acabaria por misturar o futuro com o passado. O HistGB não está nos slides, mas funciona como o LightGBM: agrupa os valores em intervalos, o que o deixa rápido com 180 mil sessões.
+
+A votação faz a média das probabilidades da LR, do NB e da árvore. Para ajudar, os modelos precisam de ser bons sozinhos e de errar em sessões diferentes. Como os três têm princípios diferentes, esperávamos alguma diversidade, mas todos se apoiam principalmente no histórico do posto, então acabam por errar em sessões parecidas. Além disso, o NB, com probabilidades muito extremas, pode acabar por atrapalhar.
+
+### 4.2 Resultados: os ensembles melhoram os seus modelos base?
+
+**Tabela 4.2a** — Ensembles no G3
+
+| Ensemble | Fold 1 | Fold 2 | Fold 3 | Média | Desvio | Pior fold | Folds > regra |
+|---|---|---|---|---|---|---|---|
+| Random Forest | 0,533 | 0,660 | 0,641 | 0,612 | 0,069 | 0,533 | 3 |
+| HistGradientBoosting | 0,538 | 0,661 | 0,642 | 0,613 | 0,066 | 0,538 | 3 |
+| Votação (LR + NB + árvore) | 0,514 | 0,643 | 0,622 | 0,593 | 0,070 | 0,514 | 3 |
+| Votação sem o NB (LR + árvore) | 0,524 | 0,650 | 0,628 | 0,601 | 0,067 | 0,524 | 3 |
+
+**Tabela 4.2b** — Diferença de AUC-PR entre cada ensemble e os seus modelos base (positivo = o ensemble é melhor)
+
+| Comparação | Fold 1 | Fold 2 | Fold 3 |
+|---|---|---|---|
+| Random Forest − árvore (prof. 6) | +0,0302 | +0,0344 | +0,0354 |
+| HistGB − árvore (prof. 6) | +0,0347 | +0,0347 | +0,0355 |
+| HistGB − Random Forest | +0,0045 | +0,0003 | +0,0001 |
+| Votação − LR | +0,0073 | +0,0070 | +0,0053 |
+| Votação − NB misto | +0,0347 | +0,0423 | +0,0493 |
+| Votação − árvore (prof. 6) | +0,0104 | +0,0174 | +0,0160 |
+| Votação sem NB − LR | +0,0175 | +0,0136 | +0,0112 |
+| Votação sem NB − árvore (prof. 6) | +0,0207 | +0,0240 | +0,0220 |
+| Votação sem NB − Votação | +0,0102 | +0,0066 | +0,0060 |
+
+**Tabela 4.2c** — Probabilidades extremas (abaixo de 1% ou acima de 99%) na validação do fold 3
+
+| Modelo | Percentagem |
+|---|---|
+| Naive Bayes misto | 72,0% |
+| Regressão logística | 0,3% |
+
+Todos os ensembles acabam por ser melhores do que os seus modelos base nos 3 folds (tabela 4.2b). A Random Forest e o HistGB ganham cerca de +0,03 da melhor árvore individual, e ficam praticamente empatados entre si. Isso é interessante na Random Forest, porque ela é feita de árvores mais profundas, que sozinhas acabariam por fazer overfitting (tabela 3.3). Ou seja, o bagging acaba por corrigir esse problema.
+
+Na votação, tirar o NB melhora o resultado nos 3 folds. Isso acontece porque o NB tem probabilidades muito extremas e, como não usa class_weight='balanced', fica numa escala diferente da LR e da árvore, puxando demais a média. Mesmo sem o NB, a votação não chega à Random Forest nem ao HistGB, porque junta só dois ou três modelos mais fracos, que erram em sessões parecidas.
+
+### 4.3 Stacking
+
+Acabamos por não usar stacking. Para usar sem leakage, os modelos base teriam de ser treinados num período mais antigo e o meta-modelo no período seguinte, sempre antes da validação. O StackingClassifier normal, com cv=5, não serve, porque divide os dados de forma aleatória e acabaria por misturar o futuro com o passado.
+
+---
+
+## 5. Comparação final
+
+**Tabela 5a** — Todos os modelos no G3, por ordem da média
+
+| Modelo | Tipo | Fold 1 | Fold 2 | Fold 3 | Média | Desvio | Pior fold | Folds > regra |
+|---|---|---|---|---|---|---|---|---|
+| HistGradientBoosting | Ensemble | 0,538 | 0,661 | 0,642 | 0,613 | 0,066 | 0,538 | 3 |
+| Random Forest | Ensemble | 0,533 | 0,660 | 0,641 | 0,612 | 0,069 | 0,533 | 3 |
+| Votação sem o NB | Ensemble | 0,524 | 0,650 | 0,628 | 0,601 | 0,067 | 0,524 | 3 |
+| Votação (LR + NB + árvore) | Ensemble | 0,514 | 0,643 | 0,622 | 0,593 | 0,070 | 0,514 | 3 |
+| Regressão logística | Individual | 0,506 | 0,636 | 0,617 | 0,586 | 0,070 | 0,506 | 3 |
+| Árvore de decisão (prof. 6) | Individual | 0,503 | 0,626 | 0,606 | 0,578 | 0,066 | 0,503 | 3 |
+| Naive Bayes misto | Individual | 0,479 | 0,601 | 0,573 | 0,551 | 0,064 | 0,479 | 1 |
+| Regra | Baseline | 0,450 | 0,602 | 0,590 | 0,548 | 0,084 | 0,450 | — |
+| No-skill | Baseline | 0,158 | 0,197 | 0,210 | 0,188 | 0,027 | 0,158 | — |
+
+**Tabela 5b** — Diferença para a regra em cada fold (positivo = melhor do que a regra)
+
+| Modelo | Fold 1 | Fold 2 | Fold 3 |
+|---|---|---|---|
+| HistGradientBoosting | +0,087 | +0,058 | +0,051 |
+| Random Forest | +0,083 | +0,058 | +0,051 |
+| Votação sem o NB | +0,073 | +0,048 | +0,038 |
+| Votação (LR + NB + árvore) | +0,063 | +0,041 | +0,032 |
+| Regressão logística | +0,056 | +0,034 | +0,027 |
+| Árvore de decisão (prof. 6) | +0,053 | +0,024 | +0,016 |
+| Naive Bayes misto | +0,028 | −0,001 | −0,017 |
+
+No fim, os ensembles acabam por ficar à frente dos modelos individuais, com o HistGB (0,613) e a Random Forest (0,612) no topo. Todos os modelos passam a regra nos 3 folds, menos o NB, que tem média um pouco acima da regra mas perde para ela em 2 folds. 
+
+Isso mostra que olhar só para a média não chega. O HistGB e a Random Forest ficam praticamente empatados: o HistGB ganha nos 3 folds, mas por muito pouco (tabela 4.2b). Pelo protocolo da Task 2, o HistGB fica em primeiro por ter a média e o pior fold um pouco melhores, mas como a diferença é muito pequena, os dois seguem para a próxima etapa (afinação, threshold e avaliação final).
+
+---
+
+## 6. Limitações
+
+Escolhas feitas nos mesmos folds da comparação: a profundidade da árvore, a versão do NB e a votação sem o NB foram escolhidas olhando para a validação dos mesmos folds onde depois comparamos os modelos. Isso pode deixar esses modelos um pouco favorecidos, já que acabaram por ser ajustados para esses períodos. O ideal seria escolher num período separado, mas com apenas 3 folds isso deixaria menos dados para a comparação.
+
+Sem teste estatístico: com apenas 3 folds, o teste de Wilcoxon nunca consegue dar significativo, porque o menor p-valor possível é 0,25. Por isso, a comparação acaba por ser feita pela consistência fold a fold (o modelo ganha nos 3 folds ou não?). Diferenças muito pequenas, como a entre o HistGB e a Random Forest, não podem ser consideradas uma diferença real.
+
+Poucas sessões de frota: a análise das frotas usa apenas 2 contas e poucas sessões, então a AUC-PR desse subgrupo pode mudar bastante com poucas sessões a mais ou a menos. Não dá para tirar conclusões fortes dela.
+
+Probabilidades do NB mal calibradas: 72% das probabilidades do NB ficam abaixo de 1% ou acima de 99%, por isso não podem ser lidas como o risco real de uma sessão. É também por isso que o NB atrapalha a votação.
+
+Ensembles sem afinação: a Random Forest e o HistGB ainda usam os valores por defeito, mudando apenas o class_weight e o early_stopping. Os resultados podem melhorar com a afinação, e a ordem entre os dois pode mudar. Isso fica para a próxima etapa.
+
+Falhas do carro no histórico do posto: algumas falhas, como as de BMS ou Vehicle charging faults, vêm do carro e não do posto, mas acabam por contar no histórico do posto. Essa divisão foi feita só pelo nome de cada motivo e não foi verificada.
+
