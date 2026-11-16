@@ -634,28 +634,72 @@ However, these values should be interpreted as preliminary experimental results 
 
 ### 4.7 Preliminary Statistical Model Evaluation
 
-The notebook also evaluates a SARIMA model using the following configuration:
+The notebook evaluates an ETS model using the following configuration:
+
+$$
+ETS(A,A,A)_{24}
+$$
+
+where additive error, trend and seasonality are used with a 24-hour seasonal period.
+
+It also evaluates a SARIMA model using the following configuration:
 
 $$
 SARIMA(1,1,0)(1,0,0)_{24}
 $$
 
-The model is fitted independently for each forecasting target.
+The SARIMAX experiments use the following configuration:
 
-Its mean validation performance is:
+$$
+SARIMAX(1,0,0)(0,0,0)_{24}
+$$
 
-| Target | MAE (kWh) | RMSE (kWh) | MASE |
-|---|---:|---:|---:|
-| Network | 242.929 | 295.987 | 2.396 |
-| Nanhu | 55.545 | 65.885 | 1.340 |
-| Tongxiang | 145.319 | 172.781 | 2.104 |
-| Xiuzhou | 97.319 | 116.930 | 1.826 |
+The SARIMAX variants incrementally include calendar, historical demand, weather and operational predictors. All models are fitted independently for each forecasting target.
 
-In these preliminary experiments, SARIMA produces higher average errors than the seasonal naïve methods for all four targets.
+The mean and standard deviation of validation performance across the four folds are reported below.
 
-Its average MASE exceeds 1 across every target, indicating that it does not outperform the daily seasonal naïve reference.
+#### ETS
 
-The results suggest that the simple recurring demand patterns captured by the seasonal naïve models provide a strong reference that more complex statistical models must improve upon.
+| Target | MAE mean (kWh) | MAE std | RMSE mean (kWh) | RMSE std | MASE mean | MASE std |
+|---|---:|---:|---:|---:|---:|---:|
+| Network | 103.678 | 13.457 | 132.805 | 13.058 | 1.022 | 0.121 |
+| Nanhu | 31.722 | 3.720 | 41.416 | 3.958 | 0.765 | 0.093 |
+| Tongxiang | 67.585 | 7.028 | 86.531 | 7.642 | 0.978 | 0.090 |
+| Xiuzhou | 54.260 | 5.431 | 70.655 | 4.257 | 1.019 | 0.079 |
+
+ETS achieves the lowest MAE, RMSE and MASE among the evaluated statistical models for all four targets. Its MASE is below 1 for Nanhu and Tongxiang and is close to 1 for Network and Xiuzhou.
+
+#### SARIMA
+
+| Target | MAE mean (kWh) | MAE std | RMSE mean (kWh) | RMSE std | MASE mean | MASE std |
+|---|---:|---:|---:|---:|---:|---:|
+| Network | 242.929 | 20.295 | 295.987 | 26.504 | 2.396 | 0.184 |
+| Nanhu | 55.545 | 14.185 | 65.885 | 14.168 | 1.340 | 0.345 |
+| Tongxiang | 145.319 | 12.322 | 172.781 | 17.468 | 2.104 | 0.171 |
+| Xiuzhou | 97.319 | 16.471 | 116.930 | 19.487 | 1.826 | 0.268 |
+
+#### SARIMAX variants
+
+The SARIMAX validation results are:
+
+| Model | Target | MAE mean (kWh) | MAE std | RMSE mean (kWh) | RMSE std | MASE mean | MASE std |
+|---|---:|---:|---:|---:|---:|---:|
+| SARIMAX (Calendar + Demand) | Network | 132.843 | 15.329 | 161.299 | 17.437 | 1.310 | 0.137 |
+| SARIMAX (Calendar + Demand) | Nanhu | 33.778 | 3.549 | 43.786 | 4.984 | 0.815 | 0.088 |
+| SARIMAX (Calendar + Demand) | Tongxiang | 83.631 | 3.567 | 101.255 | 4.804 | 1.211 | 0.041 |
+| SARIMAX (Calendar + Demand) | Xiuzhou | 64.456 | 7.357 | 79.453 | 7.759 | 1.210 | 0.111 |
+| SARIMAX (Calendar + Demand + Weather) | Network | 132.778 | 15.750 | 161.248 | 17.885 | 1.309 | 0.141 |
+| SARIMAX (Calendar + Demand + Weather) | Nanhu | 33.871 | 3.742 | 43.780 | 4.981 | 0.817 | 0.092 |
+| SARIMAX (Calendar + Demand + Weather) | Tongxiang | 83.460 | 3.607 | 101.103 | 4.938 | 1.209 | 0.041 |
+| SARIMAX (Calendar + Demand + Weather) | Xiuzhou | 64.630 | 7.755 | 79.580 | 8.011 | 1.213 | 0.118 |
+| SARIMAX (Calendar + Demand + Weather + Operational) | Network | 133.621 | 15.851 | 161.988 | 18.117 | 1.317 | 0.142 |
+| SARIMAX (Calendar + Demand + Weather + Operational) | Nanhu | 33.691 | 3.470 | 43.884 | 4.953 | 0.813 | 0.086 |
+| SARIMAX (Calendar + Demand + Weather + Operational) | Tongxiang | 84.338 | 3.617 | 101.767 | 4.623 | 1.221 | 0.043 |
+| SARIMAX (Calendar + Demand + Weather + Operational) | Xiuzhou | 65.260 | 8.484 | 80.111 | 8.508 | 1.225 | 0.131 |
+
+The SARIMAX variants substantially improve on SARIMA, although none matches ETS in these preliminary experiments. Adding weather produces small, target-dependent changes: it slightly improves Network and Tongxiang but worsens Nanhu and Xiuzhou relative to the calendar-and-demand specification. Adding operational predictors further worsens the results for Network, Tongxiang and Xiuzhou, while producing the lowest SARIMAX MAE and MASE for Nanhu.
+
+ETS is therefore the strongest statistical model in the current results, while the seasonal naïve methods remain important reference benchmarks. The MASE values below 1 for ETS on Nanhu and Tongxiang indicate improvement over the daily seasonal naïve reference for those targets.
 
 Nevertheless, the current SARIMA experiment forecasts entire 30-day validation blocks rather than generating independent 24-hour forecasts from daily 00:00 issuance times. Consequently, the results are useful for preliminary model exploration but cannot yet establish the final ranking of day-ahead forecasting methods.
 
@@ -715,7 +759,7 @@ Calendar, historical demand, weather and operational features are organised into
 
 The evaluation methodology establishes an 80% development period, an independent 20% final test period, four expanding-window validation folds and three baseline forecasting methods. Performance is assessed using MAE, RMSE and MASE, with a 24-hour seasonal period adopted for MASE.
 
-Preliminary experiments indicate that seasonal naïve methods provide strong reference performance and currently outperform the tested SARIMA configuration.
+Preliminary experiments indicate that seasonal naïve methods provide strong reference performance, while ETS currently provides the best results among the evaluated statistical models and outperforms the tested SARIMA and SARIMAX configurations.
 
 However, the existing experimental implementation must be aligned with the strict daily issuance schedule before its performance results can be treated as valid day-ahead comparisons.
 
