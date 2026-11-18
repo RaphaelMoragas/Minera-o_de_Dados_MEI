@@ -133,6 +133,10 @@ The main characteristics are:
 - The highest average demand occurs around midday, remaining elevated between 11:00 and 15:00.
 - A secondary evening increase occurs between approximately 18:00 and 22:00.
 
+The graphical representation of the average hourly demand shows that:
+
+![Average Hourly Demand](img/intraday_network_changing_demand_profile.png)
+
 The median hourly demand follows a similar pattern, reaching 720.48 kWh at 12:00.
 
 Variability is also higher during periods of stronger charging activity. The largest hourly standard deviation occurs at 11:00, reaching 306.79 kWh.
@@ -165,6 +169,10 @@ The comparison between weekdays and weekends produces the following results:
 |---|---:|---:|
 | Weekday | 411.21 | 293.73 |
 | Weekend | 418.08 | 291.89 |
+
+The graphical representation of the average hourly demand by weekday and day type shows that:
+
+![Average Hourly Demand by Day Type](img/weekday_calendar_average_demand.png)
 
 Weekend demand is slightly higher than weekday demand, although the difference is relatively small.
 
@@ -231,6 +239,10 @@ The following table summarises their main descriptive statistics.
 | Peak hourly demand (kWh) | 551.50 | 845.30 | 632.32 |
 | Hourly standard deviation (kWh) | 70.97 | 164.26 | 106.76 |
 | Coefficient of variation | 1.00 | 0.75 | 0.86 |
+
+The graphical representation of the average hourly demand by district shows that:
+
+![Average Hourly Demand by District](img/district_level_demand.png)
 
 Tongxiang is the dominant district, contributing 52.69% of total network demand.
 
